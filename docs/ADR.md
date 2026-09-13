@@ -117,3 +117,43 @@ Format: Context → Options → Decision → Consequences.
 **Decision:** Keep `net10.0` and correct SPEC.md section 3
 
 **Consequences:** Option 1 restores the document as the literal contract and lands on an LTS release, at the cost of a coordinated downgrade of every `PackageReference`. Option 2 costs one edit to SPEC.md and keeps the dependency graph that already builds clean, but leaves the delivered solution on a newer release than the document originally promised.
+
+---
+
+## ADR-006 — `IUnitOfWork` takes a delegate instead of passing `IDbTransaction` around
+
+- **Date:** 2026-09-13
+- **Proposed by:** AI (Prompt 3, TDD on the write side)
+- **Status:** Proposed
+
+**Context:** BR-08 requires the movement insert and the stock update to share one transaction. The write side is Dapper, so the transaction has to be explicit. The shape of that abstraction was driven by the handler tests.
+
+**Options:**
+1. Each write repository method takes an `IDbTransaction` parameter, and handlers open and commit it.
+2. `IUnitOfWork.ExecuteInTransactionAsync(operation, cancellationToken)` wraps the whole unit of work in a delegate.
+
+**Decision:** Option 2, with a generic overload for commands that return a value and a void overload for those that do not.
+
+**Consequences:**
+- `System.Data` stays out of the Application method signatures, and handlers read as one linear sequence.
+- "Runs inside a transaction" becomes unit-testable without a database: the test configures the mock *not* to invoke the delegate and asserts no repository was touched. Every write handler has that test.
+- The cost lands in Infrastructure: the unit of work and the Dapper repositories must share one scoped `SqlConnection`, so the connection has to be registered `Scoped` and the repositories must resolve that same instance. Getting that registration wrong fails at runtime, not at compile time.
+- Nested calls are not supported; a handler must not call another handler that also opens a transaction.
+
+---
+
+## ADR-007 — SQLite in-memory for query tests instead of the EF Core InMemory provider
+
+- **Date:** 2026-09-13
+- **Proposed by:** AI (Prompt 3, query tests)
+- **Status:** Proposed
+
+**Context:** `SPEC.md` section 12 named the EF Core InMemory provider for `GetProductsQuery`. The read side is EF Core over SQL Server, and the query relies on relational behaviour: a join to resolve the category name, and the unique SKU index.
+
+**Options:**
+1. EF Core InMemory provider, as written in the spec.
+2. SQLite in-memory (`Filename=:memory:`) with `EnsureCreated`.
+
+**Decision:** Option 2. Section 12 is updated to match.
+
+**Consequences:** SQLite is a real relational store, so LINQ goes through an actual query translator and constraints are enforced; InMemory silently ignores unique indexes and column limits, which would make the filter tests pass for the wrong reason. The trade-off is that SQLite is not SQL Server: collation and case sensitivity differ, so a `Contains` search that passes here can still behave differently in production. Those differences belong in integration tests against the real container, not in these unit tests.

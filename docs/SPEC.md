@@ -214,7 +214,7 @@ No value is hard-coded in `appsettings.json` except non-secret defaults; a commi
 | `CreateProductHandler` | `NotFoundException`; duplicate SKU → `ConflictException` |
 | `DeleteCategoryHandler` | Category with active products → `ConflictException`; empty category deleted |
 | Validators | Every required field, `quantity > 0`, `price >= 0`, string lengths |
-| Queries | `GetProductsQuery` filters by category/search and excludes inactive by default (EF Core InMemory provider) |
+| Queries | `GetProductsQuery` filters by category/search and excludes inactive by default (SQLite in-memory provider, see ADR-007) |
 | Domain | `Product.ApplyMovement()` guards (if stock logic lives in the entity) |
 
 Target: all critical handlers and validators covered; coverage reported with `coverlet` (`dotnet test --collect:"XPlat Code Coverage"`).
