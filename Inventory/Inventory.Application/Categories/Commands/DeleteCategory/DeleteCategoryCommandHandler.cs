@@ -14,21 +14,24 @@ public sealed class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategor
     }
     public Task Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
     {
-        return _unitOfWork.ExecuteInTransactionAsync(token => DeleteCategoryAsync(request, token), cancellationToken);
+        return _unitOfWork.ExecuteInTransactionAsync(token => DeactivateCategoryAsync(request, token), cancellationToken);
     }
-    private async Task DeleteCategoryAsync(DeleteCategoryCommand request, CancellationToken cancellationToken)
+    private async Task DeactivateCategoryAsync(DeleteCategoryCommand request, CancellationToken cancellationToken)
     {
-        await EnsureCategoryExistsAsync(request.CategoryId, cancellationToken);
+        Category category = await FindCategoryAsync(request.CategoryId, cancellationToken);
         await EnsureCategoryIsEmptyAsync(request.CategoryId, cancellationToken);
-        await _categoryWriteRepository.DeleteAsync(request.CategoryId, cancellationToken);
+        category.Deactivate();
+        await _categoryWriteRepository.UpdateAsync(category, cancellationToken);
     }
-    private async Task EnsureCategoryExistsAsync(int categoryId, CancellationToken cancellationToken)
+    private async Task<Category> FindCategoryAsync(int categoryId, CancellationToken cancellationToken)
     {
         Category? category = await _categoryWriteRepository.FindByIdAsync(categoryId, cancellationToken);
         if (category is null)
         {
             throw new NotFoundException(nameof(Category), categoryId);
         }
+
+        return category;
     }
     private async Task EnsureCategoryIsEmptyAsync(int categoryId, CancellationToken cancellationToken)
     {

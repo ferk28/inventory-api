@@ -168,3 +168,25 @@ Registration rules that make or break it:
 **Decision:** Option 2. Section 12 is updated to match.
 
 **Consequences:** SQLite is a real relational store, so LINQ goes through an actual query translator and constraints are enforced; InMemory silently ignores unique indexes and column limits, which would make the filter tests pass for the wrong reason. The trade-off is that SQLite is not SQL Server: collation and case sensitivity differ, so a `Contains` search that passes here can still behave differently in production. Those differences belong in integration tests against the real container, not in these unit tests.
+
+---
+
+## ADR-008 — Category delete is logical, like products
+
+- **Date:** 2026-09-13
+- **Proposed by:** Me
+- **Status:** Accepted
+
+**Context:** ADR-001 made product delete logical. Categories kept a hard `DELETE`, guarded by BR-04. That left `Categories.IsActive` — added for BR-03 — unreachable from the API: no endpoint could ever set it, so the inactive half of BR-03 was dead code in practice.
+
+**Options:**
+1. Keep the hard delete and add a separate `PATCH /categories/{id}/deactivate` endpoint.
+2. Make `DELETE /categories/{id}` logical, the same way `DELETE /products/{id}` already is.
+
+**Decision:** Option 2. `DELETE` sets `IsActive = false`; the row and its product history stay.
+
+**Consequences:**
+- One delete semantic across the API instead of two, and `IsActive` is reachable through the contract, so BR-03 is exercised by real use rather than by direct SQL.
+- BR-04 still applies: a category holding active products is refused with `409` before anything is written. Deactivating is only allowed once the category is empty of active products, so no product is ever orphaned into an inactive category.
+- Category names stay unique (BR-01) even after deletion, because the row is still there. Re-creating a category with a deleted category's name will conflict; reactivating the existing one is the way back.
+- `GET /categories` must now filter by `IsActive` the way `GET /products` does, and `CategoryDto` gains `isActive`.

@@ -101,6 +101,7 @@ Movements are **immutable**: no update or delete endpoints.
 | BR-03 | A product cannot be created with a non-existent or inactive category. |
 | BR-04 | A category with active products cannot be deleted → `409 Conflict`. |
 | BR-05 | Product delete is logical (`IsActive = false`); inactive products are excluded from list queries by default. |
+| BR-11 | Category delete is logical too (`IsActive = false`); inactive categories are excluded from list queries by default and reject new products (BR-03). |
 | BR-06 | `Stock` is read-only from the API's point of view; the only way to change it is `POST /api/inventory/movements`. |
 | BR-07 | An `Out` movement whose quantity exceeds current stock is rejected → `422 Unprocessable Entity` (`InsufficientStockException`). |
 | BR-08 | Registering a movement and updating the product stock happen in the **same database transaction** (Dapper). |
@@ -128,13 +129,13 @@ Base path: `/api`. Content type: `application/json`. All endpoints require `Auth
 ### 7.2 Categories
 | Method | Route | Body / Params | Response |
 |---|---|---|---|
-| GET | `/categories` | — | `200` `CategoryDto[]` |
+| GET | `/categories` | `?includeInactive=false` | `200` `CategoryDto[]` |
 | GET | `/categories/{id}` | — | `200` `CategoryDto` / `404` |
 | POST | `/categories` | `CreateCategoryRequest { name, description }` | `201` + `Location` header, `CategoryDto` |
 | PUT | `/categories/{id}` | `UpdateCategoryRequest { name, description }` | `204` / `404` / `409` |
-| DELETE | `/categories/{id}` | — | `204` / `404` / `409` (BR-04) |
+| DELETE | `/categories/{id}` | — | `204` (soft delete, BR-11) / `404` / `409` (BR-04) |
 
-`CategoryDto { id, name, description, createdAt }`
+`CategoryDto { id, name, description, isActive, createdAt }`
 
 ### 7.3 Products
 | Method | Route | Body / Params | Response |
@@ -147,8 +148,6 @@ Base path: `/api`. Content type: `application/json`. All endpoints require `Auth
 
 `ProductDto { id, sku, name, description, price, stock, categoryId, categoryName, isActive, createdAt, updatedAt }`
 `PagedResult<T> { items: T[], page, pageSize, totalCount }`
-
-`initialStock` (optional, ≥ 0): when provided and > 0 the API creates the product **and** an `In` movement with reason `"initial stock"` in one transaction.
 
 ### 7.4 Inventory movements
 | Method | Route | Body / Params | Response |
@@ -244,6 +243,6 @@ Target: all critical handlers and validators covered; coverage reported with `co
 
 ## 15. Open points to confirm before coding
 
-- Soft delete vs hard delete for products (spec assumes soft).
-- Whether `initialStock` on product creation is wanted or products always start at 0.
-- Keycloak vs an external provider (Auth0) — spec assumes Keycloak to keep everything local.
+- ~~Soft delete vs hard delete for products~~ — resolved in ADR-001: soft delete, and ADR-008 extends it to categories.
+- ~~Whether `initialStock` on product creation is wanted~~ — resolved in ADR-002: products always start at 0.
+- ~~Keycloak vs an external provider (Auth0)~~ — resolved in ADR-003: Keycloak, to keep everything local.
