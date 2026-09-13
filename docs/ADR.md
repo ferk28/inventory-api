@@ -124,7 +124,7 @@ Format: Context → Options → Decision → Consequences.
 
 - **Date:** 2026-09-13
 - **Proposed by:** AI (Prompt 3, TDD on the write side)
-- **Status:** Proposed
+- **Status:** Accepted
 
 **Context:** BR-08 requires the movement insert and the stock update to share one transaction. The write side is Dapper, so the transaction has to be explicit. The shape of that abstraction was driven by the handler tests.
 
@@ -134,10 +134,21 @@ Format: Context → Options → Decision → Consequences.
 
 **Decision:** Option 2, with a generic overload for commands that return a value and a void overload for those that do not.
 
+**How Infrastructure implements it:** a single `SqlConnectionContext`, registered `Scoped`, owns the connection and the ambient transaction for the request. `SqlUnitOfWork` and all three Dapper repositories take that same instance:
+
+- `SqlConnectionContext` exposes the open `SqlConnection` and the `CurrentTransaction`, which is `null` outside a transaction.
+- `SqlUnitOfWork.ExecuteInTransactionAsync` begins the transaction on that connection, runs the delegate, commits on success and rolls back on any exception.
+- Every repository method passes `transaction: _context.CurrentTransaction` to its Dapper call. Dapper ignores a `null` transaction, so reads outside a unit of work keep working unchanged.
+
+Registration rules that make or break it:
+
+- `SqlConnectionContext` must be `Scoped`, never `Singleton`: `SqlConnection` is not thread-safe, and a singleton would be shared across concurrent requests. `ISqlConnectionFactory` may stay `Singleton` because it only holds the connection string.
+- The repositories must receive the context by constructor injection, not open their own connection through the factory.
+
 **Consequences:**
 - `System.Data` stays out of the Application method signatures, and handlers read as one linear sequence.
 - "Runs inside a transaction" becomes unit-testable without a database: the test configures the mock *not* to invoke the delegate and asserts no repository was touched. Every write handler has that test.
-- The cost lands in Infrastructure: the unit of work and the Dapper repositories must share one scoped `SqlConnection`, so the connection has to be registered `Scoped` and the repositories must resolve that same instance. Getting that registration wrong fails at runtime, not at compile time.
+- The failure mode of a wrong registration is silent. If a repository opens its own connection, each statement commits on its own, BR-08 is broken, the build still succeeds and the unit tests still pass because they mock `IUnitOfWork`. Two integration tests against the real database close that gap and are part of this decision: one asserting that a failure midway through `RegisterInventoryMovement` leaves stock and movements unchanged, and one asserting that the repository and the unit of work observe the same connection.
 - Nested calls are not supported; a handler must not call another handler that also opens a transaction.
 
 ---
@@ -146,7 +157,7 @@ Format: Context → Options → Decision → Consequences.
 
 - **Date:** 2026-09-13
 - **Proposed by:** AI (Prompt 3, query tests)
-- **Status:** Proposed
+- **Status:** Accepted
 
 **Context:** `SPEC.md` section 12 named the EF Core InMemory provider for `GetProductsQuery`. The read side is EF Core over SQL Server, and the query relies on relational behaviour: a join to resolve the category name, and the unique SKU index.
 
