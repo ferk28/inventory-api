@@ -65,6 +65,7 @@ Dependency direction: `Api → Application → Domain`, `Infrastructure → Appl
 | Id | int (identity) | PK |
 | Name | string(100) | Required, unique (case-insensitive) |
 | Description | string(500) | Optional |
+| IsActive | bit | Default true; delete is logical (BR-11) |
 | CreatedAt | datetime2 | Set on insert (UTC) |
 
 ### 5.2 Product
@@ -87,6 +88,7 @@ Dependency direction: `Api → Application → Domain`, `Infrastructure → Appl
 | ProductId | int | FK → Products, required |
 | Type | tinyint / enum `MovementType { In = 1, Out = 2 }` | Required |
 | Quantity | int | > 0 |
+| StockAfter | int (nullable) | Stock the product was left with; stamped by the domain, see ADR-009 |
 | Reason | string(250) | Optional (e.g. "purchase", "sale", "adjustment") |
 | CreatedAt | datetime2 | UTC |
 
@@ -142,7 +144,7 @@ Base path: `/api`. Content type: `application/json`. All endpoints require `Auth
 |---|---|---|---|
 | GET | `/products` | `?categoryId=&search=&includeInactive=false&page=1&pageSize=20` | `200` `PagedResult<ProductDto>` |
 | GET | `/products/{id}` | — | `200` `ProductDto` / `404` |
-| POST | `/products` | `201`, `ProductDto` |
+| POST | `/products` | `CreateProductRequest { sku, name, description, price, categoryId }` | `201`, `ProductDto` |
 | PUT | `/products/{id}` | `UpdateProductRequest { name, description, price, categoryId }` | `204` / `404` / `409` |
 | DELETE | `/products/{id}` | — | `204` (soft delete) / `404` |
 
