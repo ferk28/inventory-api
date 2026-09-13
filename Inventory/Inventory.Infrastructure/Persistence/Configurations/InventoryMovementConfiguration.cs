@@ -10,6 +10,7 @@ public sealed class InventoryMovementConfiguration : IEntityTypeConfiguration<In
         builder.HasKey(movement => movement.Id);
         builder.Property(movement => movement.Type).HasConversion<byte>().IsRequired();
         builder.Property(movement => movement.Quantity).IsRequired();
+        builder.Property(movement => movement.StockAfter);
         builder.Property(movement => movement.Reason).HasMaxLength(250);
         builder.Property(movement => movement.CreatedAt).IsRequired();
         builder.HasIndex(movement => new { movement.ProductId, movement.CreatedAt });

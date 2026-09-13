@@ -7,6 +7,7 @@ public class InventoryMovement
     public Product? Product { get; private set; }
     public MovementType Type { get; private set; }
     public int Quantity { get; private set; }
+    public int? StockAfter { get; private set; }
     public string? Reason { get; private set; }
     public DateTime CreatedAt { get; private set; }
     private InventoryMovement()
@@ -19,5 +20,9 @@ public class InventoryMovement
         Quantity = quantity;
         Reason = reason;
         CreatedAt = DateTime.UtcNow;
+    }
+    internal void RecordStockAfter(int stock)
+    {
+        StockAfter = stock;
     }
 }

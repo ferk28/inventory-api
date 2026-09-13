@@ -54,11 +54,31 @@ BEGIN
         ProductId   INT               NOT NULL CONSTRAINT FK_InventoryMovements_Products FOREIGN KEY REFERENCES dbo.Products (Id),
         Type        TINYINT           NOT NULL CONSTRAINT CK_InventoryMovements_Type CHECK (Type IN (1, 2)),
         Quantity    INT               NOT NULL CONSTRAINT CK_InventoryMovements_Quantity CHECK (Quantity > 0),
+        StockAfter  INT               NULL,
         Reason      NVARCHAR(250)     NULL,
         CreatedAt   DATETIME2(0)      NOT NULL CONSTRAINT DF_InventoryMovements_CreatedAt DEFAULT SYSUTCDATETIME()
     );
     CREATE INDEX IX_InventoryMovements_ProductId_CreatedAt ON dbo.InventoryMovements (ProductId, CreatedAt DESC);
 END;
+GO
+-- MovementDto returns stockAfter, so each movement records the stock it left behind.
+-- Added after the first release; databases created before it get the column here,
+-- backfilled with the running total per product so the history stays truthful.
+IF COL_LENGTH('dbo.InventoryMovements', 'StockAfter') IS NULL
+BEGIN
+    ALTER TABLE dbo.InventoryMovements ADD StockAfter INT NULL;
+END;
+GO
+UPDATE movement
+SET StockAfter = running.StockAfter
+FROM dbo.InventoryMovements AS movement
+INNER JOIN (
+    SELECT Id,
+           SUM(CASE WHEN Type = 1 THEN Quantity ELSE -Quantity END)
+               OVER (PARTITION BY ProductId ORDER BY CreatedAt, Id ROWS UNBOUNDED PRECEDING) AS StockAfter
+    FROM dbo.InventoryMovements
+) AS running ON running.Id = movement.Id
+WHERE movement.StockAfter IS NULL;
 GO
 -- Seed data (only when the database is empty).
 IF NOT EXISTS (SELECT 1 FROM dbo.Categories)

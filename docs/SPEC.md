@@ -156,7 +156,7 @@ Base path: `/api`. Content type: `application/json`. All endpoints require `Auth
 | GET | `/inventory/movements` | `?productId=&type=&from=&to=&page=&pageSize=` | `200` `PagedResult<MovementDto>` |
 | GET | `/products/{id}/movements` | `?page=&pageSize=` | `200` `PagedResult<MovementDto>` |
 
-`MovementDto { id, productId, productSku, type, quantity, reason, stockAfter, createdAt }`
+`MovementDto { id, productId, productSku, type, quantity, reason, stockAfter, createdAt }` — `stockAfter` is stored on the row, see ADR-009.
 
 ### 7.5 Health
 `GET /health` → `200` when the API and the database are reachable. Anonymous.

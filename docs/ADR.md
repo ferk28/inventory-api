@@ -190,3 +190,26 @@ Registration rules that make or break it:
 - BR-04 still applies: a category holding active products is refused with `409` before anything is written. Deactivating is only allowed once the category is empty of active products, so no product is ever orphaned into an inactive category.
 - Category names stay unique (BR-01) even after deletion, because the row is still there. Re-creating a category with a deleted category's name will conflict; reactivating the existing one is the way back.
 - `GET /categories` must now filter by `IsActive` the way `GET /products` does, and `CategoryDto` gains `isActive`.
+
+---
+
+## ADR-009 — Store `StockAfter` on each movement instead of computing it
+
+- **Date:** 2026-09-13
+- **Proposed by:** AI (Prompt 4, queries)
+- **Status:** Proposed
+
+**Context:** `MovementDto` in SPEC section 7.4 returns `stockAfter`, the stock the product was left with after that movement. Nothing in the schema held it, so the read side had no source for the field.
+
+**Options:**
+1. Compute it at read time as a running total: `SUM(CASE WHEN Type = 1 THEN Quantity ELSE -Quantity END) OVER (PARTITION BY ProductId ORDER BY CreatedAt, Id)`.
+2. Store it in an `InventoryMovements.StockAfter` column, written by the same transaction that applies the movement.
+3. Drop `stockAfter` from the contract.
+
+**Decision:** Option 2. `Product.ApplyMovement` stamps the resulting stock onto the movement, so the value is produced by the write that caused it.
+
+**Consequences:**
+- Reads stay a plain projection. Option 1 needs a window function, which EF Core cannot express in LINQ, so the read side would have had to drop to raw SQL and break the EF-for-reads rule in ADR-000.
+- The value is an audit fact: it records what the stock actually was at that moment, not what a later recomputation thinks it should have been. If stock is ever corrected outside the movement history, the recomputed version would silently disagree with reality; the stored one preserves it.
+- The cost is a denormalised column that can drift if anything writes movements without going through the domain. Nothing does today: `RecordStockAfter` is `internal` and only `Product.ApplyMovement` calls it, so a movement cannot be stamped except by applying it.
+- The column is nullable, because a movement rejected by BR-07 or BR-09 never gets stamped. Rows written before this change are backfilled by `db/init.sql` with the running total from option 1, which is exact for a history that only ever moved through the API.

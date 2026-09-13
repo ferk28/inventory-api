@@ -13,9 +13,9 @@ public sealed class InventoryMovementWriteRepository : IInventoryMovementWriteRe
     public async Task<int> AddAsync(InventoryMovement movement, CancellationToken cancellationToken)
     {
         const string sql = """
-            INSERT INTO dbo.InventoryMovements (ProductId, Type, Quantity, Reason, CreatedAt)
+            INSERT INTO dbo.InventoryMovements (ProductId, Type, Quantity, StockAfter, Reason, CreatedAt)
             OUTPUT INSERTED.Id
-            VALUES (@ProductId, @Type, @Quantity, @Reason, @CreatedAt);
+            VALUES (@ProductId, @Type, @Quantity, @StockAfter, @Reason, @CreatedAt);
             """;
         DbConnection connection = await _connectionContext.GetConnectionAsync(cancellationToken);
         CommandDefinition command = new(sql, movement, _connectionContext.CurrentTransaction, cancellationToken: cancellationToken);

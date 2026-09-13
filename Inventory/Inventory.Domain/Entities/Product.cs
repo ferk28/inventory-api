@@ -53,6 +53,7 @@ public class Product
         {
             Stock += movement.Quantity;
         }
+        movement.RecordStockAfter(Stock);
         UpdatedAt = DateTime.UtcNow;
     }
     private void EnsureProductIsActive()
