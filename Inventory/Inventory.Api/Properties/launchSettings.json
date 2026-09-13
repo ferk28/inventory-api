@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
     "http": {
@@ -7,7 +7,12 @@
       "launchBrowser": false,
       "applicationUrl": "http://localhost:5159",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DB_HOST": "localhost",
+        "DB_PORT": "1433",
+        "DB_NAME": "InventoryDb",
+        "DB_USER": "sa",
+        "DB_PASSWORD": "admin"
       }
     },
     "https": {
@@ -16,7 +21,12 @@
       "launchBrowser": false,
       "applicationUrl": "https://localhost:7181;http://localhost:5159",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DB_HOST": "localhost",
+        "DB_PORT": "1433",
+        "DB_NAME": "InventoryDb",
+        "DB_USER": "sa",
+        "DB_PASSWORD": "Your_strong_Passw0rd!"
       }
     }
   }

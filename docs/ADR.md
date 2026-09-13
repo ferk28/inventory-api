@@ -1,0 +1,119 @@
+# Architecture Decision Records
+
+Each record documents a decision, who proposed it (AI or me), the alternatives considered, and the final outcome. Status values: `Proposed` (by AI, awaiting my decision), `Accepted`, `Modified`, `Rejected`.
+
+Format: Context → Options → Decision → Consequences.
+
+---
+
+## ADR-000 — Clean Architecture with CQRS; EF Core for reads, Dapper for writes
+
+- **Date:** 2026-09-12
+- **Proposed by:** AI (roadmap, Prompt 1)
+- **Status:** Accepted
+
+**Context:** The test requires EF Core for reads and Dapper for writes, and recommends CQRS.
+
+**Options:**
+1. Single repository layer mixing both ORMs behind one interface.
+2. CQRS: queries go through EF Core (`AsNoTracking`), commands go through Dapper. Four projects: Domain, Application, Infrastructure, Api.
+
+**Decision:** Option 2. The read/write ORM split maps one-to-one onto the query/command split, so CQRS is the natural fit rather than an added layer.
+
+**Consequences:** Two persistence paths to maintain; the EF model and the Dapper SQL must stay in sync with the same schema (`db/init.sql`). Unit tests target handlers with mocked interfaces, so neither ORM is needed in tests.
+
+---
+
+## ADR-001 — Soft delete for products
+
+- **Date:** 2026-09-12
+- **Proposed by:** AI (SPEC.md v1, section 15)
+- **Status:** Accepted
+
+**Context:** A product can have inventory movements. Hard-deleting it would orphan or cascade-delete its history.
+
+**Options:**
+1. Hard delete with `ON DELETE CASCADE` on movements.
+2. Hard delete blocked when movements exist (409 Conflict).
+3. Soft delete (`IsActive = 0`); product excluded from queries, history preserved.
+
+**Decision:** Option 3. Soft delete. To keep old data for future, and reusable information to prevent duplicated items
+
+**Consequences:** Major data concurrency in tables. But manage with past products can be organized when the enterprise wants to pay bills in goverment or adutory. Every queries grows and grows and must includes extra query to hide dleted items.
+
+---
+
+## ADR-002 — Optional `initialStock` on product creation
+
+- **Date:** 2026-09-12
+- **Proposed by:** AI (SPEC.md v1, section 15)
+- **Status:** Proposed
+
+**Context:** Should a product be creatable with stock, or must stock always enter through a movement?
+
+**Options:**
+1. Products always start at 0; stock only changes via `POST /inventory-movements`.
+2. Optional `initialStock` that creates an `In` movement in the same transaction.
+
+**Decision:** Option 1. Product always start at 0, stock only changes via POST
+
+**Consequences:** Blocking items when product get to 0, error by persistence in databases. If the enterprise have 1 or more stores can be conflicts in the same item
+
+---
+
+## ADR-003 — Keycloak in docker-compose as the OAuth2 provider
+
+- **Date:** 2026-09-12
+- **Proposed by:** AI (SPEC.md v1, section 15)
+- **Status:** Proposed
+
+**Context:** Endpoints must be protected with OAuth2. The evaluator must be able to run everything with one `docker compose up`.
+
+**Options:**
+1. External provider (Auth0, Azure AD): less setup in the repo, but the evaluator needs an account/tenant.
+2. Keycloak container with a pre-imported realm: fully local, one command, heavier compose file.
+3. Self-issued JWTs from the API itself: simplest, but it is not OAuth2.
+
+**Decision:** Keycloak container with a pre-imported realm: fully local, one command, heavier compose file
+
+**Consequences:** While it makes the initial docker-compose.yml file heavier, it is the only option that completely satisfies both of your core requirements: it is fully local and runnable with a single command, and it uses a genuine OAuth2 flow
+---
+
+## ADR-004 — Idempotent SQL script instead of EF Core migrations
+
+- **Date:** 2026-09-12
+- **Proposed by:** AI (Prompt 2, persistence setup)
+- **Status:** Accepted
+
+**Context:** The schema has to exist before the API starts, and the evaluator must get a working database from `docker compose up` alone, without running any `dotnet` command. EF Core is already referenced in `Inventory.Infrastructure` for the read side, so migrations were available.
+
+**Options:**
+1. EF Core migrations applied at startup with `Database.Migrate()`.
+2. EF Core migrations applied manually with `dotnet ef database update`.
+3. A single idempotent `db/init.sql` run by a one-shot `sqlserver-init` container that waits on the SQL Server healthcheck.
+
+**Decision:** Option 3. `db/init.sql` is the single source of truth for the schema; the EF model in `Persistence/Configurations/` mirrors it but never creates it.
+
+**Consequences:**
+- The evaluator needs no .NET SDK to get a database, and the init container's exit code makes schema failures visible (`Exited (0)` = success).
+- Writes go through Dapper with hand-written SQL, so a migration-generated schema would have been half-authoritative anyway; a plain script keeps one source of truth.
+- The cost is drift risk: any change to an `IEntityTypeConfiguration` must be mirrored in `db/init.sql` by hand. There is no `dotnet ef migrations add` safety net, and no generated down-migration. Mitigation is review discipline plus the fact that EF is read-only here, so a mismatch surfaces immediately as a mapping error on the first query.
+- The script must stay idempotent (`DB_ID` / `OBJECT_ID ... IS NULL` guards, plus `IF NOT EXISTS` on the seed data) because the init container re-runs on every `docker compose up`.
+
+---
+
+## ADR-005 — Target framework: net10.0 instead of the net8.0 stated in SPEC.md
+
+- **Date:** 2026-09-12
+- **Proposed by:** AI (structure review, Prompt 2)
+- **Status:** Proposed
+
+**Context:** `SPEC.md` section 3 records .NET 8 (LTS) as the runtime decision, but the scaffolded solution targets `net10.0` across all five projects, with the whole package graph aligned on 10.0.12 (EF Core, ASP.NET Core, JwtBearer) on SDK 10.0.401. The test itself does not pin a .NET version.
+
+**Options:**
+1. Retarget all projects to `net8.0` and downgrade every package to 8.x, matching SPEC.md as written.
+2. Keep `net10.0` and correct SPEC.md section 3, recording the change here.
+
+**Decision:** Pending — awaiting my decision.
+
+**Consequences:** Option 1 restores the document as the literal contract and lands on an LTS release, at the cost of a coordinated downgrade of every `PackageReference`. Option 2 costs one edit to SPEC.md and keeps the dependency graph that already builds clean, but leaves the delivered solution on a newer release than the document originally promised.
