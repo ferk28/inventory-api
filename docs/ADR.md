@@ -106,9 +106,9 @@ Format: Context → Options → Decision → Consequences.
 
 - **Date:** 2026-09-12
 - **Proposed by:** AI (structure review, Prompt 2)
-- **Status:** Rejected
+- **Status:** Accepted
 
-**Context:** `SPEC.md` section 3 records .NET 8 (LTS) as the runtime decision, but the scaffolded solution targets `net10.0` across all five projects, with the whole package graph aligned on 10.0.12 (EF Core, ASP.NET Core, JwtBearer) on SDK 10.0.401. The test itself does not pin a .NET version.
+**Context:** `SPEC.md` section 3 records .NET 10 as the runtime decision, but the scaffolded solution targets `net10.0` across all five projects, with the whole package graph aligned on 10.0.12 (EF Core, ASP.NET Core, JwtBearer) on SDK 10.0.401. The test itself does not pin a .NET version.
 
 **Options:**
 1. Retarget all projects to `net8.0` and downgrade every package to 8.x, matching SPEC.md as written.
