@@ -81,6 +81,31 @@ public sealed class ProductTests
         product.Stock.Should().Be(0);
         product.IsActive.Should().BeTrue();
     }
+    [Fact]
+    public void ApplyMovement_WithInMovement_StampsTheResultingStockOnTheMovement()
+    {
+        Product product = CreateProductWithStock(10);
+        InventoryMovement movement = new(product.Id, MovementType.In, 5, "restock");
+        product.ApplyMovement(movement);
+        movement.StockAfter.Should().Be(15);
+    }
+    [Fact]
+    public void ApplyMovement_WithOutMovement_StampsTheResultingStockOnTheMovement()
+    {
+        Product product = CreateProductWithStock(10);
+        InventoryMovement movement = new(product.Id, MovementType.Out, 4, "sale");
+        product.ApplyMovement(movement);
+        movement.StockAfter.Should().Be(6);
+    }
+    [Fact]
+    public void ApplyMovement_WhenItIsRejected_LeavesTheMovementUnstamped()
+    {
+        Product product = CreateProductWithStock(3);
+        InventoryMovement movement = new(product.Id, MovementType.Out, 4, "sale");
+        Action applyMovement = () => product.ApplyMovement(movement);
+        applyMovement.Should().Throw<InsufficientStockException>();
+        movement.StockAfter.Should().BeNull();
+    }
     private static Product CreateProduct()
     {
         return new Product("SKU-001", "Wireless mouse", "Ergonomic wireless mouse", 19.99m, 1);
