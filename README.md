@@ -30,6 +30,15 @@ docker compose up --build
 That starts four things: SQL Server, a one-shot container that applies
 `db/init.sql`, Keycloak with the `inventory` realm imported, and the API.
 
+`DB_PASSWORD` becomes the SA password of the SQL Server container, so it has to
+satisfy the SQL Server password policy — at least eight characters using three
+of upper case, lower case, digits and symbols. A weaker value leaves
+`inventory-sqlserver` restarting and nothing else starts behind it.
+
+If a SQL Server instance already listens on the host's port 1433, set `DB_PORT`
+to something free before starting. Only the published port moves; the API talks
+to the container over the compose network on 1433 either way.
+
 | Service | URL |
 |---|---|
 | Swagger UI | http://localhost:5080/swagger |

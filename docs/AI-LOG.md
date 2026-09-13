@@ -177,9 +177,9 @@ Commits: `09dce8a`, `06aaf69`, `4a2c7d8`.
 
 **AI output:** Multi-stage `Dockerfile` restoring from the project files before copying sources, the `api` service in compose waiting on the schema container and Keycloak's health check, `.dockerignore` excluding `.env`, and `.gitattributes` forcing LF on the files that break with CRLF on a Linux reviewer's machine (ADR-011).
 
-**Reported honestly as unverified:** Docker Desktop never started during any of these sessions ("Docker Desktop is unable to start"). `docker compose config` validates the YAML, but **`docker compose up --build` has never been executed and the image has never been built**. The AI refused to report the Docker requirement as satisfied.
+**Reported honestly as unverified at the time:** Docker Desktop never started during any of those sessions ("Docker Desktop is unable to start"). `docker compose config` validated the YAML, but the stack had never been built or run, and the AI refused to report the Docker requirement as satisfied. Phase 8 closes this.
 
-**My action:** <!-- TODO: run `docker compose up --build` once Docker Desktop works, and record the result here. -->
+**My action:** Left the Docker requirement open until the daemon worked, rather than claiming it.
 
 Commits: `d56ee3c`, `11f9749`.
 
@@ -196,6 +196,28 @@ Commits: `d56ee3c`, `11f9749`.
 
 ---
 
+## Phase 8 — Running the stack for real (2026-09-13)
+
+### Prompt 16
+> "puedes revisar el proyecto, ya solo faltaria un paso, pero me quede en la parte donde debia configurar docker. Puedes revisar porfavor"
+
+**AI output:** Docker Desktop was working this time, so the AI built the image and ran `docker compose up --build` end to end. The YAML that `docker compose config` had validated in Phase 6 turned out to hide three defects, none of which any test or static check could see:
+
+1. **`DB_PASSWORD=admin` in my local `.env`.** It becomes `MSSQL_SA_PASSWORD`, and SQL Server refuses it, so the database container never becomes healthy and nothing downstream starts. `.env.example` already carried a strong value; my copy did not.
+2. **Every valid token was rejected with `401 — The signature key was not found`.** `KC_HOSTNAME` rewrites all advertised URLs, so the discovery document served at `keycloak:8080` still pointed `jwks_uri` at `localhost:8080` — which, inside the API container, is the API itself. Fixed with `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true` (ADR-010 correction).
+3. **No token could be obtained at all**, because the imported realm users had no `email` and Keycloak 24+ stamps them with a `VERIFY_PROFILE` required action: `400 invalid_grant — Account is not fully set up`.
+
+Two further defects surfaced from calling the running API:
+
+4. **`POST /api/inventory/movements` rejected its own documented body.** `{"type":"In"}` did not deserialise and the response returned `"type": 1`, both against SPEC section 7.4. Fixed with a global `JsonStringEnumConverter` (ADR-012).
+5. **The container ran as root**, although SPEC section 11 asked for a non-root user. Fixed with `USER $APP_UID`.
+
+**Verified after the fixes**, from a torn-down volume and a fresh `docker compose up --build -d --wait`: all four containers reach their expected state (`sqlserver-init` at `Exited (0)`), `/health` and Swagger answer `200`, `/api/products` answers `401` without a token and `200` with one, `reader` gets `403` on a write while `admin` gets `201`, the password and client-credentials grants both work, and the business rules answer on the wire — `409` for a duplicate name and for deleting a category with active products, `400` with the field dictionary, `404`, and `422` for both insufficient stock (BR-07) and an inactive product (BR-09). A movement pair `In 7` / `Out 3` left the product at `stock 4` with `stockAfter` stamped `7` then `4`. The 138 unit tests stay green after the serialiser change.
+
+**My action:** <!-- TODO: confirm you reviewed these five fixes, and note that item 1 was my own .env, not the AI's. -->
+
+---
+
 ## Summary of how the AI was supervised
 
 **What the AI proposed that I rejected or changed.**
@@ -209,12 +231,14 @@ Commits: `d56ee3c`, `11f9749`.
 - `MovementDto` returned `stockAfter` with no column behind it (ADR-009).
 - `SPEC.md` section 7.3 still specified `initialStock` after ADR-002 had removed it.
 - Every endpoint was unprotected: `UseAuthorization()` was present but no `[Authorize]` attribute existed.
+- `MovementType` crossed the wire as `1` and `2` and refused the documented `"In"` / `"Out"` body, against SPEC section 7.4 (ADR-012).
+- The container ran as root, although SPEC section 11 asked for a non-root user.
 
 **Mistakes the AI made and corrected.**
 - Removing `initialStock` from the spec took the whole `Body/Params` cell of the `POST /products` row with it, leaving a broken three-column table. Caught and repaired in `19cb956`.
 - A `git add -A` swept an edit I was making to `ADR.md` into an unrelated commit (`c191398`).
 
 **Where verification came from running the code, not from tests.**
-The two most valuable defects of the whole exercise — the missing `errors` dictionary and the Spanish validation messages — were found by starting the API and calling it with curl. Both had passing unit tests. This is the main lesson I take from the exercise: unit tests prove the unit, not the wire format.
+The two most valuable defects of the whole exercise — the missing `errors` dictionary and the Spanish validation messages — were found by starting the API and calling it with curl. Both had passing unit tests. Phase 8 repeated the lesson at the infrastructure level: `docker compose config` was happy, the image built, all 138 tests passed, and the stack still could not issue a token, validate one, or accept the movement body its own spec documents. This is the main thing I take from the exercise: a green suite proves the units, not the wire format, and a valid config file proves the syntax, not the system.
 
 <!-- TODO: add where you wrote or rewrote code by hand instead of prompting. -->

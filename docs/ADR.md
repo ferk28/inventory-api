@@ -232,11 +232,14 @@ Registration rules that make or break it:
 
 3. **The issuer and the discovery address are separate settings.** Under Docker the browser reaches Keycloak at `localhost:8080` and the API container reaches it at `keycloak:8080`. The token is stamped with the first, discovery must be fetched from the second. `KEYCLOAK_AUTHORITY` carries the issuer and `KEYCLOAK_METADATA_ADDRESS` the discovery URL; `KC_HOSTNAME` pins Keycloak so it always issues the external one.
 
+   **Correction, after the stack first ran (2026-09-13):** splitting the two settings is necessary but was not sufficient. `KC_HOSTNAME` rewrites *every* URL Keycloak advertises, so the discovery document fetched at `keycloak:8080` still returned `"jwks_uri": "http://localhost:8080/..."`. Inside the API container that host is the API itself, listening on the same port, so the key set was never found and every valid token came back `401 invalid_token — The signature key was not found`. `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true` resolves backchannel URLs from the request host while leaving the issuer on `localhost`, which is what both sides need.
+
 **Consequences:**
 - Both clients need an audience mapper. Keycloak issues `aud=account` by default, and `ValidateAudience` then rejects every token.
 - `KEYCLOAK_REQUIRE_HTTPS_METADATA=false` is set for local compose only. It must be `true` anywhere else, and the variable exists so that is a deployment choice rather than a code change.
 - The realm ships `admin` and `reader` so the two roles can be told apart; without a read-only user, "the policies work" would only mean "the token is accepted".
 - Realm secrets are committed in `docker/keycloak/realm-export.json`. That is deliberate for a reviewable test — the whole point is one-command startup — and is exactly what must not be done for a real deployment.
+- Imported users need an `email`. Keycloak 24+ enables the declarative user profile, where `email` is required, so a user imported without one is created with a `VERIFY_PROFILE` required action and the password grant answers `400 invalid_grant — Account is not fully set up`. Found only by asking the running realm for a token.
 
 ---
 
@@ -260,3 +263,28 @@ Registration rules that make or break it:
 - The runtime image carries no SDK and no sources.
 - The test projects are deliberately outside the build: the image is the deliverable, not the test run. `.dockerignore` also excludes `bin/`, `obj/` and `.env`, so no local build output or secret is ever copied into a layer.
 - The API waits on `service_completed_successfully` for the schema container and on Keycloak's health check, so a first `docker compose up` cannot start the API against a database without tables.
+- The runtime stage switches to the image's non-root `app` user (`USER $APP_UID`, uid 1654), as SPEC section 11 requires. Nothing in the container writes to disk, so no volume or permission change is needed.
+- `DB_PASSWORD` becomes the SA password of the SQL Server container, so it must satisfy the SQL Server password policy (at least eight characters from three of: upper, lower, digit, symbol). A weak value does not fail the API — it stops the database container from ever becoming healthy.
+
+---
+
+## ADR-012 — Enum values cross the wire as names, not numbers
+
+- **Date:** 2026-09-13
+- **Proposed by:** AI (Prompt 16, running the compose stack)
+- **Status:** Accepted
+
+**Context:** SPEC section 7.4 documents the movement type as `"In" | "Out"`, and `MovementDto` is specified to return the same. `System.Text.Json` serialises enums as their numeric value by default, so the API answered `"type": 1` and rejected the documented request body with `400 — The JSON value could not be converted to RegisterMovementRequest`. Query-string binding hid the problem: `GET /api/inventory/movements?type=Out` works, because model binding uses the type converter rather than the JSON serialiser.
+
+**Options:**
+1. Change the spec to numeric values and let the enum serialise as `1` and `2`.
+2. Register `JsonStringEnumConverter` globally, so every enum on the contract travels as its name.
+3. Take a `string` in the request record and parse it in the controller.
+
+**Decision:** Option 2 — one converter registered on `AddControllers().AddJsonOptions(...)`.
+
+**Consequences:**
+- The wire format now matches the spec in both directions, and Swagger shows an `In`/`Out` dropdown instead of an integer field.
+- Renaming an enum member becomes a breaking API change. That is the right trade: the names are the contract, and the numeric values stay an internal storage detail of the `TINYINT` column.
+- Option 3 was rejected because it moves parsing into the controller and produces a different error shape than every other bad field.
+- No unit test caught this. All 138 pass either side of the change, because they construct commands in memory and never cross the serialiser — the same blind spot recorded for the `errors` dictionary in Phase 4.

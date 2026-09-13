@@ -208,8 +208,8 @@ No value is hard-coded in `appsettings.json` except non-secret defaults; a commi
 
 ## 11. Docker
 
-- `src/Inventory.Api/Dockerfile`: multi-stage (`sdk:8.0` build/test → `aspnet:8.0` runtime), non-root user.
-- `docker-compose.yml` services: `sqlserver` (healthcheck via `sqlcmd`), `db-init` (runs `db/init.sql` once), `keycloak` (imports realm), `api` (`depends_on: service_healthy`).
+- `Dockerfile` at the repository root (ADR-011): multi-stage (`sdk:10.0` build → `aspnet:10.0` runtime), non-root `app` user.
+- `docker-compose.yml` services: `sqlserver` (healthcheck via `sqlcmd`), `sqlserver-init` (runs `db/init.sql` once), `keycloak` (imports realm), `api` (`depends_on` on the health check of the first and the completion of the second).
 - `docker compose up --build` must be the only command required.
 
 ## 12. Testing plan (TDD — tests are written before each handler)
@@ -241,11 +241,11 @@ Target: all critical handlers and validators covered; coverage reported with `co
 ## 14. Deliverables checklist
 
 - [ ] Public repository with this `docs/` folder
-- [ ] `docker compose up --build` starts SQL Server, Keycloak and the API
-- [ ] Swagger at `/swagger` with working OAuth2 login
-- [ ] All endpoints in §7 implemented and protected
-- [ ] Unit tests in §12 green, coverage report
-- [ ] `README.md` (setup, run, test, debug locally, get a token)
+- [x] `docker compose up --build` starts SQL Server, Keycloak and the API
+- [x] Swagger at `/swagger` with working OAuth2 login
+- [x] All endpoints in §7 implemented and protected
+- [x] Unit tests in §12 green, coverage report
+- [x] `README.md` (setup, run, test, debug locally, get a token)
 - [ ] `docs/AI-LOG.md`, `docs/ADR.md`, `docs/decisions.md`
 
 ## 15. Open points to confirm before coding
