@@ -22,6 +22,31 @@ public sealed class CategoryWriteRepository : ICategoryWriteRepository
 
         return await connection.QuerySingleOrDefaultAsync<Category>(command);
     }
+    public async Task<bool> NameExistsAsync(string name, int? excludedCategoryId, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT CASE WHEN EXISTS (
+                SELECT 1 FROM dbo.Categories
+                WHERE Name = @Name AND (@ExcludedCategoryId IS NULL OR Id <> @ExcludedCategoryId)
+            ) THEN 1 ELSE 0 END;
+            """;
+        DbConnection connection = await _connectionContext.GetConnectionAsync(cancellationToken);
+        CommandDefinition command = new(sql, new { Name = name, ExcludedCategoryId = excludedCategoryId }, _connectionContext.CurrentTransaction, cancellationToken: cancellationToken);
+
+        return await connection.QuerySingleAsync<bool>(command);
+    }
+    public async Task<int> AddAsync(Category category, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            INSERT INTO dbo.Categories (Name, Description, IsActive, CreatedAt)
+            OUTPUT INSERTED.Id
+            VALUES (@Name, @Description, @IsActive, @CreatedAt);
+            """;
+        DbConnection connection = await _connectionContext.GetConnectionAsync(cancellationToken);
+        CommandDefinition command = new(sql, category, _connectionContext.CurrentTransaction, cancellationToken: cancellationToken);
+
+        return await connection.QuerySingleAsync<int>(command);
+    }
     public async Task<bool> HasActiveProductsAsync(int categoryId, CancellationToken cancellationToken)
     {
         const string sql = """
