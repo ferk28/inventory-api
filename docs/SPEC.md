@@ -156,6 +156,7 @@ Base path: `/api`. Content type: `application/json`. All endpoints require `Auth
 |---|---|---|---|
 | POST | `/inventory/movements` | `RegisterMovementRequest { productId, type: "In" \| "Out", quantity, reason? }` | `201` `MovementDto` / `404` / `422` |
 | GET | `/inventory/movements` | `?productId=&type=&from=&to=&page=&pageSize=` | `200` `PagedResult<MovementDto>` |
+| GET | `/inventory/movements/{id}` | — | `200` `MovementDto` / `404` |
 | GET | `/products/{id}/movements` | `?page=&pageSize=` | `200` `PagedResult<MovementDto>` |
 
 `MovementDto { id, productId, productSku, type, quantity, reason, stockAfter, createdAt }` — `stockAfter` is stored on the row, see ADR-009.
