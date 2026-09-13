@@ -1,0 +1,9 @@
+# Normalise line endings in the repository so a Linux or macOS reviewer
+# never receives CRLF in files that break with it.
+* text=auto
+
+Dockerfile   text eol=lf
+*.sql        text eol=lf
+*.sh         text eol=lf
+*.yml        text eol=lf
+*.json       text eol=lf
