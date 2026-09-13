@@ -43,6 +43,7 @@ public class Product
     }
     public void ApplyMovement(InventoryMovement movement)
     {
+        EnsureProductIsActive();
         if (movement.Type == MovementType.Out)
         {
             EnsureStockIsEnough(movement.Quantity);
@@ -53,6 +54,13 @@ public class Product
             Stock += movement.Quantity;
         }
         UpdatedAt = DateTime.UtcNow;
+    }
+    private void EnsureProductIsActive()
+    {
+        if (!IsActive)
+        {
+            throw new ProductInactiveException(Id);
+        }
     }
     private void EnsureStockIsEnough(int quantity)
     {
