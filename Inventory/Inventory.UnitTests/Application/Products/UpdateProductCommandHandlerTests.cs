@@ -19,7 +19,7 @@ public sealed class UpdateProductCommandHandlerTests
     [Fact]
     public async Task Handle_WithValidCommand_PersistsTheNewDetails()
     {
-        GivenProductAndCategory(CreateProduct());
+        GivenProductAndCategory(CreateProduct(), CreateActiveCategory());
         await _handler.Handle(_command, CancellationToken.None);
         await _productWriteRepository.Received(1).UpdateAsync(
             Arg.Is<Product>(product => product.Name == "Wireless mouse v2" && product.Price == 24.50m && product.CategoryId == 2),
@@ -29,7 +29,7 @@ public sealed class UpdateProductCommandHandlerTests
     public async Task Handle_WithValidCommand_LeavesStockUntouched()
     {
         Product product = CreateProduct();
-        GivenProductAndCategory(product);
+        GivenProductAndCategory(product, CreateActiveCategory());
         await _handler.Handle(_command, CancellationToken.None);
         await _productWriteRepository.Received(1).UpdateAsync(
             Arg.Is<Product>(updated => updated.Stock == 0), Arg.Any<CancellationToken>());
@@ -37,7 +37,7 @@ public sealed class UpdateProductCommandHandlerTests
     [Fact]
     public async Task Handle_WithValidCommand_StampsUpdatedAt()
     {
-        GivenProductAndCategory(CreateProduct());
+        GivenProductAndCategory(CreateProduct(), CreateActiveCategory());
         await _handler.Handle(_command, CancellationToken.None);
         await _productWriteRepository.Received(1).UpdateAsync(
             Arg.Is<Product>(product => product.UpdatedAt != null), Arg.Any<CancellationToken>());
@@ -53,16 +53,31 @@ public sealed class UpdateProductCommandHandlerTests
     [Fact]
     public async Task Handle_WithUnknownCategory_ThrowsNotFoundException()
     {
-        GivenProductAndCategory(CreateProduct(), categoryExists: false);
+        GivenProductAndCategory(CreateProduct(), null);
         Func<Task> handle = () => _handler.Handle(_command, CancellationToken.None);
         await handle.Should().ThrowAsync<NotFoundException>();
     }
     [Fact]
     public async Task Handle_WithUnknownCategory_PersistsNothing()
     {
-        GivenProductAndCategory(CreateProduct(), categoryExists: false);
+        GivenProductAndCategory(CreateProduct(), null);
         Func<Task> handle = () => _handler.Handle(_command, CancellationToken.None);
         await handle.Should().ThrowAsync<NotFoundException>();
+        await _productWriteRepository.DidNotReceive().UpdateAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>());
+    }
+    [Fact]
+    public async Task Handle_WithInactiveCategory_ThrowsConflictException()
+    {
+        GivenProductAndCategory(CreateProduct(), CreateInactiveCategory());
+        Func<Task> handle = () => _handler.Handle(_command, CancellationToken.None);
+        await handle.Should().ThrowAsync<ConflictException>();
+    }
+    [Fact]
+    public async Task Handle_WithInactiveCategory_PersistsNothing()
+    {
+        GivenProductAndCategory(CreateProduct(), CreateInactiveCategory());
+        Func<Task> handle = () => _handler.Handle(_command, CancellationToken.None);
+        await handle.Should().ThrowAsync<ConflictException>();
         await _productWriteRepository.DidNotReceive().UpdateAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>());
     }
     [Fact]
@@ -72,11 +87,22 @@ public sealed class UpdateProductCommandHandlerTests
         await _handler.Handle(_command, CancellationToken.None);
         await _productWriteRepository.DidNotReceive().UpdateAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>());
     }
-    private void GivenProductAndCategory(Product product, bool categoryExists = true)
+    private void GivenProductAndCategory(Product product, Category? category)
     {
         RunTransactionInline();
         _productWriteRepository.FindByIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(product);
-        _categoryWriteRepository.ExistsAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(categoryExists);
+        _categoryWriteRepository.FindByIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(category);
+    }
+    private static Category CreateActiveCategory()
+    {
+        return new Category("Electronics", "Devices and accessories");
+    }
+    private static Category CreateInactiveCategory()
+    {
+        Category category = CreateActiveCategory();
+        category.Deactivate();
+
+        return category;
     }
     private void RunTransactionInline()
     {

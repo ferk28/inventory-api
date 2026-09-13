@@ -19,7 +19,7 @@ public sealed class CreateProductCommandHandlerTests
     [Fact]
     public async Task Handle_WithValidCommand_PersistsTheProduct()
     {
-        GivenExistingCategory();
+        GivenCategory(CreateActiveCategory());
         await _handler.Handle(_command, CancellationToken.None);
         await _productWriteRepository.Received(1).AddAsync(
             Arg.Is<Product>(product => product.Sku == "SKU-001" && product.Price == 19.99m && product.CategoryId == 1),
@@ -28,7 +28,7 @@ public sealed class CreateProductCommandHandlerTests
     [Fact]
     public async Task Handle_WithValidCommand_StartsTheProductActiveAndWithoutStock()
     {
-        GivenExistingCategory();
+        GivenCategory(CreateActiveCategory());
         await _handler.Handle(_command, CancellationToken.None);
         await _productWriteRepository.Received(1).AddAsync(
             Arg.Is<Product>(product => product.Stock == 0 && product.IsActive),
@@ -37,7 +37,7 @@ public sealed class CreateProductCommandHandlerTests
     [Fact]
     public async Task Handle_WithValidCommand_ReturnsTheNewProductId()
     {
-        GivenExistingCategory();
+        GivenCategory(CreateActiveCategory());
         _productWriteRepository.AddAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>()).Returns(7);
         int productId = await _handler.Handle(_command, CancellationToken.None);
         productId.Should().Be(7);
@@ -45,14 +45,14 @@ public sealed class CreateProductCommandHandlerTests
     [Fact]
     public async Task Handle_WithUnknownCategory_ThrowsNotFoundException()
     {
-        GivenExistingCategory(exists: false);
+        GivenCategory(null);
         Func<Task> handle = () => _handler.Handle(_command, CancellationToken.None);
         await handle.Should().ThrowAsync<NotFoundException>();
     }
     [Fact]
     public async Task Handle_WithUnknownCategory_PersistsNothing()
     {
-        GivenExistingCategory(exists: false);
+        GivenCategory(null);
         Func<Task> handle = () => _handler.Handle(_command, CancellationToken.None);
         await handle.Should().ThrowAsync<NotFoundException>();
         await _productWriteRepository.DidNotReceive().AddAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>());
@@ -60,7 +60,7 @@ public sealed class CreateProductCommandHandlerTests
     [Fact]
     public async Task Handle_WithDuplicatedSku_ThrowsConflictException()
     {
-        GivenExistingCategory();
+        GivenCategory(CreateActiveCategory());
         _productWriteRepository.SkuExistsAsync("SKU-001", Arg.Any<CancellationToken>()).Returns(true);
         Func<Task> handle = () => _handler.Handle(_command, CancellationToken.None);
         await handle.Should().ThrowAsync<ConflictException>();
@@ -68,8 +68,23 @@ public sealed class CreateProductCommandHandlerTests
     [Fact]
     public async Task Handle_WithDuplicatedSku_PersistsNothing()
     {
-        GivenExistingCategory();
+        GivenCategory(CreateActiveCategory());
         _productWriteRepository.SkuExistsAsync("SKU-001", Arg.Any<CancellationToken>()).Returns(true);
+        Func<Task> handle = () => _handler.Handle(_command, CancellationToken.None);
+        await handle.Should().ThrowAsync<ConflictException>();
+        await _productWriteRepository.DidNotReceive().AddAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>());
+    }
+    [Fact]
+    public async Task Handle_WithInactiveCategory_ThrowsConflictException()
+    {
+        GivenCategory(CreateInactiveCategory());
+        Func<Task> handle = () => _handler.Handle(_command, CancellationToken.None);
+        await handle.Should().ThrowAsync<ConflictException>();
+    }
+    [Fact]
+    public async Task Handle_WithInactiveCategory_PersistsNothing()
+    {
+        GivenCategory(CreateInactiveCategory());
         Func<Task> handle = () => _handler.Handle(_command, CancellationToken.None);
         await handle.Should().ThrowAsync<ConflictException>();
         await _productWriteRepository.DidNotReceive().AddAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>());
@@ -77,14 +92,25 @@ public sealed class CreateProductCommandHandlerTests
     [Fact]
     public async Task Handle_WhenTransactionDoesNotRun_TouchesNoRepository()
     {
-        _categoryWriteRepository.ExistsAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(true);
+        _categoryWriteRepository.FindByIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(CreateActiveCategory());
         await _handler.Handle(_command, CancellationToken.None);
         await _productWriteRepository.DidNotReceive().AddAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>());
     }
-    private void GivenExistingCategory(bool exists = true)
+    private void GivenCategory(Category? category)
     {
         RunTransactionInline();
-        _categoryWriteRepository.ExistsAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(exists);
+        _categoryWriteRepository.FindByIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(category);
+    }
+    private static Category CreateActiveCategory()
+    {
+        return new Category("Electronics", "Devices and accessories");
+    }
+    private static Category CreateInactiveCategory()
+    {
+        Category category = CreateActiveCategory();
+        category.Deactivate();
+
+        return category;
     }
     private void RunTransactionInline()
     {
