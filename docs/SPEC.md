@@ -26,7 +26,7 @@ Build a RESTful API that manages a product inventory: products, categories and i
 
 | Concern | Decision | Rationale |
 |---|---|---|
-| Runtime | .NET 8 (LTS) | Required by the test; LTS |
+| Runtime | .NET 10 | Required by the test; LTS |
 | Architecture | Clean Architecture (Domain / Application / Infrastructure / Api) | Dependency rule, testable core |
 | CQRS | MediatR — `IRequest<T>` for commands and queries | Explicit separation, one handler per use case |
 | Reads | EF Core 8 + `AsNoTracking()` | Required by the test |
@@ -211,7 +211,7 @@ No value is hard-coded in `appsettings.json` except non-secret defaults; a commi
 | Area | Test cases |
 |---|---|
 | `RegisterInventoryMovementHandler` | In increases stock; Out decreases stock; Out > stock throws `InsufficientStockException`; unknown product throws `NotFoundException`; inactive product throws `ProductInactiveException`; repository called inside one transaction |
-| `CreateProductHandler` | Creates product; with `initialStock` also registers an In movement; unknown category → `NotFoundException`; duplicate SKU → `ConflictException` |
+| `CreateProductHandler` | `NotFoundException`; duplicate SKU → `ConflictException` |
 | `DeleteCategoryHandler` | Category with active products → `ConflictException`; empty category deleted |
 | Validators | Every required field, `quantity > 0`, `price >= 0`, string lengths |
 | Queries | `GetProductsQuery` filters by category/search and excludes inactive by default (EF Core InMemory provider) |

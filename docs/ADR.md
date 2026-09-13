@@ -47,7 +47,7 @@ Format: Context → Options → Decision → Consequences.
 
 - **Date:** 2026-09-12
 - **Proposed by:** AI (SPEC.md v1, section 15)
-- **Status:** Proposed
+- **Status:** Accepted
 
 **Context:** Should a product be creatable with stock, or must stock always enter through a movement?
 
@@ -65,7 +65,7 @@ Format: Context → Options → Decision → Consequences.
 
 - **Date:** 2026-09-12
 - **Proposed by:** AI (SPEC.md v1, section 15)
-- **Status:** Proposed
+- **Status:** Accepted
 
 **Context:** Endpoints must be protected with OAuth2. The evaluator must be able to run everything with one `docker compose up`.
 
@@ -106,7 +106,7 @@ Format: Context → Options → Decision → Consequences.
 
 - **Date:** 2026-09-12
 - **Proposed by:** AI (structure review, Prompt 2)
-- **Status:** Proposed
+- **Status:** Rejected
 
 **Context:** `SPEC.md` section 3 records .NET 8 (LTS) as the runtime decision, but the scaffolded solution targets `net10.0` across all five projects, with the whole package graph aligned on 10.0.12 (EF Core, ASP.NET Core, JwtBearer) on SDK 10.0.401. The test itself does not pin a .NET version.
 
@@ -114,6 +114,6 @@ Format: Context → Options → Decision → Consequences.
 1. Retarget all projects to `net8.0` and downgrade every package to 8.x, matching SPEC.md as written.
 2. Keep `net10.0` and correct SPEC.md section 3, recording the change here.
 
-**Decision:** Pending — awaiting my decision.
+**Decision:** Keep `net10.0` and correct SPEC.md section 3
 
 **Consequences:** Option 1 restores the document as the literal contract and lands on an LTS release, at the cost of a coordinated downgrade of every `PackageReference`. Option 2 costs one edit to SPEC.md and keeps the dependency graph that already builds clean, but leaves the delivered solution on a newer release than the document originally promised.
