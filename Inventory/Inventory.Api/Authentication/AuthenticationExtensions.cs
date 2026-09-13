@@ -18,6 +18,7 @@ public static class AuthenticationExtensions
     private static void ConfigureJwtBearer(JwtBearerOptions options, AuthenticationSettings settings)
     {
         options.Authority = settings.Authority;
+        options.MetadataAddress = settings.MetadataAddress;
         options.Audience = settings.Audience;
         options.RequireHttpsMetadata = settings.RequireHttpsMetadata;
         options.TokenValidationParameters = new TokenValidationParameters

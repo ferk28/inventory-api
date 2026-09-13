@@ -36,6 +36,8 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT}
+      KC_HOSTNAME_STRICT: "false"
       KC_HEALTH_ENABLED: "true"
     ports:
       - "${KEYCLOAK_PORT}:8080"
@@ -47,5 +49,34 @@ services:
       timeout: 5s
       retries: 20
       start_period: 30s
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory-api
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      sqlserver-init:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      DB_HOST: sqlserver
+      DB_PORT: "1433"
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # The browser reaches Keycloak on localhost, the container on the compose network.
+      # Authority is the issuer stamped into the token; metadata is where discovery is fetched.
+      KEYCLOAK_AUTHORITY: http://localhost:${KEYCLOAK_PORT}/realms/inventory
+      KEYCLOAK_METADATA_ADDRESS: http://keycloak:8080/realms/inventory/.well-known/openid-configuration
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE}
+      KEYCLOAK_SWAGGER_CLIENT_ID: ${KEYCLOAK_SWAGGER_CLIENT_ID}
+      KEYCLOAK_REQUIRE_HTTPS_METADATA: "false"
+    ports:
+      - "${API_PORT}:8080"
 volumes:
   sqlserver-data:

@@ -213,3 +213,50 @@ Registration rules that make or break it:
 - The value is an audit fact: it records what the stock actually was at that moment, not what a later recomputation thinks it should have been. If stock is ever corrected outside the movement history, the recomputed version would silently disagree with reality; the stored one preserves it.
 - The cost is a denormalised column that can drift if anything writes movements without going through the domain. Nothing does today: `RecordStockAfter` is `internal` and only `Product.ApplyMovement` calls it, so a movement cannot be stamped except by applying it.
 - The column is nullable, because a movement rejected by BR-07 or BR-09 never gets stamped. Rows written before this change are backfilled by `db/init.sql` with the running total from option 1, which is exact for a history that only ever moved through the API.
+
+---
+
+## ADR-010 — Keycloak wiring: role flattening, a separate Swagger client, and a split issuer
+
+- **Date:** 2026-09-13
+- **Proposed by:** AI (Prompt 6, OAuth2)
+- **Status:** Proposed
+
+**Context:** ADR-003 chose Keycloak but not how the API consumes it. Three details decide whether authentication works at all, and each fails silently rather than loudly.
+
+**Decisions:**
+
+1. **Realm roles are flattened into role claims.** Keycloak puts them in a `realm_access` claim holding raw JSON; `JwtBearer` does not interpret it, so `RequireRole("inventory.read")` never matches and a valid token carrying the right role still gets `403`. `KeycloakRoleFlattener` runs on `OnTokenValidated`. The alternative, mapping client roles from `resource_access`, has the same problem one level deeper.
+
+2. **Swagger uses its own public client.** `inventory-api` stays confidential for client credentials; a browser cannot hold its secret. `inventory-swagger` is public with PKCE and direct access grants, so the Authorize button works without shipping a secret to the browser.
+
+3. **The issuer and the discovery address are separate settings.** Under Docker the browser reaches Keycloak at `localhost:8080` and the API container reaches it at `keycloak:8080`. The token is stamped with the first, discovery must be fetched from the second. `KEYCLOAK_AUTHORITY` carries the issuer and `KEYCLOAK_METADATA_ADDRESS` the discovery URL; `KC_HOSTNAME` pins Keycloak so it always issues the external one.
+
+**Consequences:**
+- Both clients need an audience mapper. Keycloak issues `aud=account` by default, and `ValidateAudience` then rejects every token.
+- `KEYCLOAK_REQUIRE_HTTPS_METADATA=false` is set for local compose only. It must be `true` anywhere else, and the variable exists so that is a deployment choice rather than a code change.
+- The realm ships `admin` and `reader` so the two roles can be told apart; without a read-only user, "the policies work" would only mean "the token is accepted".
+- Realm secrets are committed in `docker/keycloak/realm-export.json`. That is deliberate for a reviewable test — the whole point is one-command startup — and is exactly what must not be done for a real deployment.
+
+---
+
+## ADR-011 — Publish the API as a container built from the repository root
+
+- **Date:** 2026-09-13
+- **Proposed by:** AI (Prompt 7, Docker)
+- **Status:** Proposed
+
+**Context:** The test requires everything needed to build and run the application and the database with Docker. SQL Server, its init container and Keycloak were already in compose; the API itself was not.
+
+**Options:**
+1. Publish the API on the host and copy the binaries into a runtime image.
+2. Multi-stage Dockerfile: restore and publish with the SDK image, ship only the ASP.NET runtime.
+
+**Decision:** Option 2, with the build context at the repository root so the four project files are copied and restored before the sources.
+
+**Consequences:**
+- The reviewer needs no .NET SDK, only Docker.
+- Copying the `.csproj` files first means a source-only change reuses the cached restore layer instead of re-downloading every package.
+- The runtime image carries no SDK and no sources.
+- The test projects are deliberately outside the build: the image is the deliverable, not the test run. `.dockerignore` also excludes `bin/`, `obj/` and `.env`, so no local build output or secret is ever copied into a layer.
+- The API waits on `service_completed_successfully` for the schema container and on Keycloak's health check, so a first `docker compose up` cannot start the API against a database without tables.
