@@ -17,5 +17,7 @@ RUN dotnet publish Inventory/Inventory.Api/Inventory.Api.csproj -c Release -o /a
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish ./
+# SPEC section 11: the container must not run as root; the base image ships user "app".
+USER $APP_UID
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Inventory.Api.dll"]

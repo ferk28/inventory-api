@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Inventory.Api.Authentication;
 using Inventory.Api.Errors;
 using Inventory.Api.Swagger;
@@ -7,7 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddKeycloakAuthentication(builder.Configuration);
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ProblemDetailsExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
