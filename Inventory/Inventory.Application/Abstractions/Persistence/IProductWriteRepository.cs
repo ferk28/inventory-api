@@ -5,5 +5,6 @@ public interface IProductWriteRepository
     Task<Product?> FindByIdAsync(int productId, CancellationToken cancellationToken);
     Task<bool> SkuExistsAsync(string sku, CancellationToken cancellationToken);
     Task<int> AddAsync(Product product, CancellationToken cancellationToken);
+    Task UpdateAsync(Product product, CancellationToken cancellationToken);
     Task UpdateStockAsync(Product product, CancellationToken cancellationToken);
 }
