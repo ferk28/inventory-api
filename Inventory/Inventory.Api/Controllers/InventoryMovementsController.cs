@@ -1,3 +1,4 @@
+using Inventory.Api.Authentication;
 using Inventory.Api.Contracts;
 using Inventory.Application.Common.Models;
 using Inventory.Application.InventoryMovements.Commands.RegisterInventoryMovement;
@@ -6,6 +7,7 @@ using Inventory.Application.InventoryMovements.Queries.GetInventoryMovements;
 using Inventory.Application.InventoryMovements.Queries.GetMovementById;
 using Inventory.Domain.Enums;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace Inventory.Api.Controllers;
 [ApiController]
@@ -18,6 +20,7 @@ public sealed class InventoryMovementsController : ControllerBase
     {
         _sender = sender;
     }
+    [Authorize(Policy = AuthorizationPolicies.Read)]
     [HttpGet]
     [ProducesResponseType<PagedResult<MovementDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<MovementDto>>> GetMovements(
@@ -33,6 +36,7 @@ public sealed class InventoryMovementsController : ControllerBase
 
         return Ok(await _sender.Send(query, cancellationToken));
     }
+    [Authorize(Policy = AuthorizationPolicies.Read)]
     [HttpGet("{id:int}")]
     [ProducesResponseType<MovementDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -40,6 +44,7 @@ public sealed class InventoryMovementsController : ControllerBase
     {
         return Ok(await _sender.Send(new GetMovementByIdQuery(id), cancellationToken));
     }
+    [Authorize(Policy = AuthorizationPolicies.Write)]
     [HttpPost]
     [ProducesResponseType<MovementDto>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

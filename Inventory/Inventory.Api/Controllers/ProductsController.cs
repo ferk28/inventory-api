@@ -1,3 +1,4 @@
+using Inventory.Api.Authentication;
 using Inventory.Api.Contracts;
 using Inventory.Application.Common.Models;
 using Inventory.Application.InventoryMovements.Queries;
@@ -9,6 +10,7 @@ using Inventory.Application.Products.Queries;
 using Inventory.Application.Products.Queries.GetProductById;
 using Inventory.Application.Products.Queries.GetProducts;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace Inventory.Api.Controllers;
 [ApiController]
@@ -21,6 +23,7 @@ public sealed class ProductsController : ControllerBase
     {
         _sender = sender;
     }
+    [Authorize(Policy = AuthorizationPolicies.Read)]
     [HttpGet]
     [ProducesResponseType<PagedResult<ProductDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<ProductDto>>> GetProducts(
@@ -35,6 +38,7 @@ public sealed class ProductsController : ControllerBase
 
         return Ok(await _sender.Send(query, cancellationToken));
     }
+    [Authorize(Policy = AuthorizationPolicies.Read)]
     [HttpGet("{id:int}")]
     [ProducesResponseType<ProductDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -42,6 +46,7 @@ public sealed class ProductsController : ControllerBase
     {
         return Ok(await _sender.Send(new GetProductByIdQuery(id), cancellationToken));
     }
+    [Authorize(Policy = AuthorizationPolicies.Read)]
     [HttpGet("{id:int}/movements")]
     [ProducesResponseType<PagedResult<MovementDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -53,6 +58,7 @@ public sealed class ProductsController : ControllerBase
     {
         return Ok(await _sender.Send(new GetProductMovementsQuery(id, page, pageSize), cancellationToken));
     }
+    [Authorize(Policy = AuthorizationPolicies.Write)]
     [HttpPost]
     [ProducesResponseType<ProductDto>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -66,6 +72,7 @@ public sealed class ProductsController : ControllerBase
 
         return CreatedAtAction(nameof(GetProductById), new { id = productId }, product);
     }
+    [Authorize(Policy = AuthorizationPolicies.Write)]
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -77,6 +84,7 @@ public sealed class ProductsController : ControllerBase
 
         return NoContent();
     }
+    [Authorize(Policy = AuthorizationPolicies.Write)]
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

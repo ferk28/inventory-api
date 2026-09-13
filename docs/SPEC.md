@@ -193,12 +193,16 @@ Pipeline behaviors: `ValidationBehavior` (FluentValidation) → handler. Command
 
 | Variable | Used by | Example |
 |---|---|---|
-| `ConnectionStrings__Inventory` | API | `Server=sqlserver,1433;Database=Inventory;User Id=sa;Password=...;TrustServerCertificate=True` |
-| `MSSQL_SA_PASSWORD` | SQL Server container | `Your_password123` |
+| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | API + SQL Server containers | `sqlserver` / `1433` / `InventoryDb` / `sa` / `...` |
 | `KEYCLOAK_AUTHORITY` | API | `http://keycloak:8080/realms/inventory` |
 | `KEYCLOAK_AUDIENCE` | API | `inventory-api` |
-| `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD` | Keycloak | `admin` / `admin` |
+| `KEYCLOAK_REQUIRE_HTTPS_METADATA` | API | `false` locally, `true` anywhere else |
+| `KEYCLOAK_SWAGGER_CLIENT_ID` | API (Swagger UI) | `inventory-swagger` |
+| `KEYCLOAK_PORT` | Keycloak container | `8080` |
+| `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD` | Keycloak container | `admin` / `admin` |
 | `ASPNETCORE_ENVIRONMENT` | API | `Development` |
+
+The API builds its connection string from the `DB_*` parts in `ConnectionStringBuilder`, rather than taking a full connection string, so no secret is ever written as one opaque value.
 
 No value is hard-coded in `appsettings.json` except non-secret defaults; a committed `.env.example` documents every variable.
 
