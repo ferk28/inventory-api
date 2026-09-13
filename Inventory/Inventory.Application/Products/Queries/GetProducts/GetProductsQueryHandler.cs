@@ -1,5 +1,6 @@
 using Inventory.Application.Abstractions.Persistence;
 using Inventory.Application.Common.Models;
+using Inventory.Application.Products.Queries;
 using Inventory.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

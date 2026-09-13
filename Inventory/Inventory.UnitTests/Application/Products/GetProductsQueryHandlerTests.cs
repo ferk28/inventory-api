@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Inventory.Application.Common.Models;
+using Inventory.Application.Products.Queries;
 using Inventory.Application.Products.Queries.GetProducts;
 using Inventory.Domain.Entities;
 using Inventory.Domain.Enums;

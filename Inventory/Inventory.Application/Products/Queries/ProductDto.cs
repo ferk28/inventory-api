@@ -1,4 +1,4 @@
-namespace Inventory.Application.Products.Queries.GetProducts;
+namespace Inventory.Application.Products.Queries;
 public sealed record ProductDto(
     int Id,
     string Sku,
