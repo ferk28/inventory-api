@@ -1,6 +1,6 @@
-using System.Data;
+using System.Data.Common;
 namespace Inventory.Application.Abstractions.Persistence;
 public interface ISqlConnectionFactory
 {
-    Task<IDbConnection> OpenConnectionAsync(CancellationToken cancellationToken);
+    Task<DbConnection> OpenConnectionAsync(CancellationToken cancellationToken);
 }

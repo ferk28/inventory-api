@@ -1,4 +1,4 @@
-using System.Data;
+using System.Data.Common;
 using Inventory.Application.Abstractions.Persistence;
 using Microsoft.Data.SqlClient;
 namespace Inventory.Infrastructure.Persistence;
@@ -9,7 +9,7 @@ public sealed class SqlConnectionFactory : ISqlConnectionFactory
     {
         _connectionString = connectionString;
     }
-    public async Task<IDbConnection> OpenConnectionAsync(CancellationToken cancellationToken)
+    public async Task<DbConnection> OpenConnectionAsync(CancellationToken cancellationToken)
     {
         SqlConnection connection = new(_connectionString);
         await connection.OpenAsync(cancellationToken);
