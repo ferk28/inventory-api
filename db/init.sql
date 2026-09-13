@@ -14,9 +14,18 @@ BEGIN
         Id          INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Categories PRIMARY KEY,
         Name        NVARCHAR(100)     NOT NULL,
         Description NVARCHAR(500)     NULL,
+        IsActive    BIT               NOT NULL CONSTRAINT DF_Categories_IsActive DEFAULT 1,
         CreatedAt   DATETIME2(0)      NOT NULL CONSTRAINT DF_Categories_CreatedAt DEFAULT SYSUTCDATETIME()
     );
     CREATE UNIQUE INDEX UX_Categories_Name ON dbo.Categories (Name);
+END;
+GO
+-- BR-03 needs an inactive category to be a thing. Added after the first release,
+-- so databases created before it get the column here instead.
+IF COL_LENGTH('dbo.Categories', 'IsActive') IS NULL
+BEGIN
+    ALTER TABLE dbo.Categories
+        ADD IsActive BIT NOT NULL CONSTRAINT DF_Categories_IsActive DEFAULT 1;
 END;
 GO
 IF OBJECT_ID('dbo.Products', 'U') IS NULL

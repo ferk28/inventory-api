@@ -24,8 +24,8 @@ public sealed class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategor
     }
     private async Task EnsureCategoryExistsAsync(int categoryId, CancellationToken cancellationToken)
     {
-        bool categoryExists = await _categoryWriteRepository.ExistsAsync(categoryId, cancellationToken);
-        if (!categoryExists)
+        Category? category = await _categoryWriteRepository.FindByIdAsync(categoryId, cancellationToken);
+        if (category is null)
         {
             throw new NotFoundException(nameof(Category), categoryId);
         }

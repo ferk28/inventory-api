@@ -23,18 +23,22 @@ public sealed class CreateProductCommandHandler : IRequestHandler<CreateProductC
     }
     private async Task<int> CreateProductAsync(CreateProductCommand request, CancellationToken cancellationToken)
     {
-        await EnsureCategoryExistsAsync(request.CategoryId, cancellationToken);
+        await EnsureCategoryAcceptsProductsAsync(request.CategoryId, cancellationToken);
         await EnsureSkuIsAvailableAsync(request.Sku, cancellationToken);
         Product product = new(request.Sku, request.Name, request.Description, request.Price, request.CategoryId);
 
         return await _productWriteRepository.AddAsync(product, cancellationToken);
     }
-    private async Task EnsureCategoryExistsAsync(int categoryId, CancellationToken cancellationToken)
+    private async Task EnsureCategoryAcceptsProductsAsync(int categoryId, CancellationToken cancellationToken)
     {
-        bool categoryExists = await _categoryWriteRepository.ExistsAsync(categoryId, cancellationToken);
-        if (!categoryExists)
+        Category? category = await _categoryWriteRepository.FindByIdAsync(categoryId, cancellationToken);
+        if (category is null)
         {
             throw new NotFoundException(nameof(Category), categoryId);
+        }
+        if (!category.IsActive)
+        {
+            throw new ConflictException($"Category {categoryId} is inactive and cannot hold products.");
         }
     }
     private async Task EnsureSkuIsAvailableAsync(string sku, CancellationToken cancellationToken)

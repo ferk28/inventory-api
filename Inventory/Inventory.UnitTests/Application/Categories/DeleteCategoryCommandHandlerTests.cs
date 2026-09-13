@@ -2,6 +2,7 @@ using FluentAssertions;
 using Inventory.Application.Abstractions.Persistence;
 using Inventory.Application.Categories.Commands.DeleteCategory;
 using Inventory.Application.Common.Exceptions;
+using Inventory.Domain.Entities;
 using NSubstitute;
 namespace Inventory.UnitTests.Application.Categories;
 public sealed class DeleteCategoryCommandHandlerTests
@@ -46,14 +47,14 @@ public sealed class DeleteCategoryCommandHandlerTests
     [Fact]
     public async Task Handle_WhenTransactionDoesNotRun_TouchesNoRepository()
     {
-        _categoryWriteRepository.ExistsAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(true);
+        _categoryWriteRepository.FindByIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(new Category("Electronics", "Devices and accessories"));
         await _handler.Handle(_command, CancellationToken.None);
         await _categoryWriteRepository.DidNotReceive().DeleteAsync(Arg.Any<int>(), Arg.Any<CancellationToken>());
     }
     private void GivenCategory(bool hasActiveProducts, bool exists = true)
     {
         RunTransactionInline();
-        _categoryWriteRepository.ExistsAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(exists);
+        _categoryWriteRepository.FindByIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(exists ? new Category("Electronics", "Devices and accessories") : null);
         _categoryWriteRepository.HasActiveProductsAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(hasActiveProducts);
     }
     private void RunTransactionInline()

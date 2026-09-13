@@ -24,7 +24,7 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
     private async Task UpdateProductAsync(UpdateProductCommand request, CancellationToken cancellationToken)
     {
         Product product = await FindProductAsync(request.ProductId, cancellationToken);
-        await EnsureCategoryExistsAsync(request.CategoryId, cancellationToken);
+        await EnsureCategoryAcceptsProductsAsync(request.CategoryId, cancellationToken);
         product.UpdateDetails(request.Name, request.Description, request.Price, request.CategoryId);
         await _productWriteRepository.UpdateAsync(product, cancellationToken);
     }
@@ -38,12 +38,16 @@ public sealed class UpdateProductCommandHandler : IRequestHandler<UpdateProductC
 
         return product;
     }
-    private async Task EnsureCategoryExistsAsync(int categoryId, CancellationToken cancellationToken)
+    private async Task EnsureCategoryAcceptsProductsAsync(int categoryId, CancellationToken cancellationToken)
     {
-        bool categoryExists = await _categoryWriteRepository.ExistsAsync(categoryId, cancellationToken);
-        if (!categoryExists)
+        Category? category = await _categoryWriteRepository.FindByIdAsync(categoryId, cancellationToken);
+        if (category is null)
         {
             throw new NotFoundException(nameof(Category), categoryId);
+        }
+        if (!category.IsActive)
+        {
+            throw new ConflictException($"Category {categoryId} is inactive and cannot hold products.");
         }
     }
 }

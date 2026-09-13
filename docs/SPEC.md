@@ -121,7 +121,7 @@ Base path: `/api`. Content type: `application/json`. All endpoints require `Auth
 | Validation failure (FluentValidation) | 400 — `errors` contains field → messages |
 | Missing / invalid token | 401 |
 | Entity not found | 404 |
-| Uniqueness / referential conflict (BR-01, BR-02, BR-04) | 409 |
+| Uniqueness / referential conflict (BR-01, BR-02, BR-03 inactive category, BR-04) | 409 |
 | Business rule violation (BR-07, BR-09) | 422 |
 | Unhandled | 500 (no stack trace in response) |
 
@@ -141,7 +141,7 @@ Base path: `/api`. Content type: `application/json`. All endpoints require `Auth
 |---|---|---|---|
 | GET | `/products` | `?categoryId=&search=&includeInactive=false&page=1&pageSize=20` | `200` `PagedResult<ProductDto>` |
 | GET | `/products/{id}` | — | `200` `ProductDto` / `404` |
-| POST | `/products` | `CreateProductRequest { sku, name, description, price, categoryId, initialStock? }` | `201`, `ProductDto` |
+| POST | `/products` | `201`, `ProductDto` |
 | PUT | `/products/{id}` | `UpdateProductRequest { name, description, price, categoryId }` | `204` / `404` / `409` |
 | DELETE | `/products/{id}` | — | `204` (soft delete) / `404` |
 
