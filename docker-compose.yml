@@ -38,6 +38,9 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT}
       KC_HOSTNAME_STRICT: "false"
+      # The issuer stays on localhost for the browser, but the discovery document
+      # must advertise backchannel URLs the API container can actually reach.
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_HEALTH_ENABLED: "true"
     ports:
       - "${KEYCLOAK_PORT}:8080"

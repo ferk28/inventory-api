@@ -61,6 +61,7 @@
   "users": [
     {
       "username": "admin",
+      "email": "admin@inventory.local",
       "enabled": true,
       "emailVerified": true,
       "firstName": "Inventory",
@@ -70,6 +71,7 @@
     },
     {
       "username": "reader",
+      "email": "reader@inventory.local",
       "enabled": true,
       "emailVerified": true,
       "firstName": "Inventory",
