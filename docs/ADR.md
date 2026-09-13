@@ -197,7 +197,7 @@ Registration rules that make or break it:
 
 - **Date:** 2026-09-13
 - **Proposed by:** AI (Prompt 4, queries)
-- **Status:** Proposed
+- **Status:** Accepted
 
 **Context:** `MovementDto` in SPEC section 7.4 returns `stockAfter`, the stock the product was left with after that movement. Nothing in the schema held it, so the read side had no source for the field.
 
@@ -220,7 +220,7 @@ Registration rules that make or break it:
 
 - **Date:** 2026-09-13
 - **Proposed by:** AI (Prompt 6, OAuth2)
-- **Status:** Proposed
+- **Status:** Accepted
 
 **Context:** ADR-003 chose Keycloak but not how the API consumes it. Three details decide whether authentication works at all, and each fails silently rather than loudly.
 
@@ -244,7 +244,7 @@ Registration rules that make or break it:
 
 - **Date:** 2026-09-13
 - **Proposed by:** AI (Prompt 7, Docker)
-- **Status:** Proposed
+- **Status:** Accepted
 
 **Context:** The test requires everything needed to build and run the application and the database with Docker. SQL Server, its init container and Keycloak were already in compose; the API itself was not.
 
