@@ -51,6 +51,30 @@ public sealed class KeycloakAuthenticationTests
         settings.RequireHttpsMetadata.Should().BeFalse();
     }
     [Fact]
+    public void FromEnvironment_WithoutAnExplicitMetadataAddress_DerivesItFromTheAuthority()
+    {
+        IConfiguration configuration = Configuration(new Dictionary<string, string?>
+        {
+            ["KEYCLOAK_AUTHORITY"] = "http://localhost:8080/realms/inventory",
+            ["KEYCLOAK_AUDIENCE"] = "inventory-api"
+        });
+        AuthenticationSettings settings = AuthenticationSettingsReader.FromEnvironment(configuration);
+        settings.MetadataAddress.Should().Be("http://localhost:8080/realms/inventory/.well-known/openid-configuration");
+    }
+    [Fact]
+    public void FromEnvironment_WithAnExplicitMetadataAddress_KeepsTheAuthorityAsTheIssuer()
+    {
+        IConfiguration configuration = Configuration(new Dictionary<string, string?>
+        {
+            ["KEYCLOAK_AUTHORITY"] = "http://localhost:8080/realms/inventory",
+            ["KEYCLOAK_AUDIENCE"] = "inventory-api",
+            ["KEYCLOAK_METADATA_ADDRESS"] = "http://keycloak:8080/realms/inventory/.well-known/openid-configuration"
+        });
+        AuthenticationSettings settings = AuthenticationSettingsReader.FromEnvironment(configuration);
+        settings.Authority.Should().Be("http://localhost:8080/realms/inventory");
+        settings.MetadataAddress.Should().Be("http://keycloak:8080/realms/inventory/.well-known/openid-configuration");
+    }
+    [Fact]
     public void Flatten_WithRealmRoles_TurnsThemIntoRoleClaims()
     {
         ClaimsPrincipal principal = PrincipalWithRealmAccess("""{"roles":["inventory.read","inventory.write"]}""");
