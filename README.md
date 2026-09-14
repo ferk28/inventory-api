@@ -5,6 +5,7 @@ Built for a Senior Developer technical test, following Spec-Driven Development â
 `docs/SPEC.md` was written and committed before any code, and every deviation
 from it is recorded in `docs/ADR.md`.
 
+
 ## Stack
 
 | Concern | Choice |
