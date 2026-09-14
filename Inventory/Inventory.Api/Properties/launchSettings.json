@@ -12,7 +12,12 @@
         "DB_PORT": "1433",
         "DB_NAME": "InventoryDb",
         "DB_USER": "sa",
-        "DB_PASSWORD": "admin"
+        "DB_PASSWORD": "Your_strong_Passw0rd!",
+        "KEYCLOAK_AUTHORITY": "http://localhost:8080/realms/inventory",
+        "KEYCLOAK_AUDIENCE": "inventory-api",
+        "KEYCLOAK_SWAGGER_CLIENT_ID": "inventory-swagger",
+        "KEYCLOAK_REQUIRE_HTTPS_METADATA": "false",
+        "CORS_ALLOWED_ORIGINS": "http://localhost:4200"
       }
     },
     "https": {
@@ -26,7 +31,12 @@
         "DB_PORT": "1433",
         "DB_NAME": "InventoryDb",
         "DB_USER": "sa",
-        "DB_PASSWORD": "Your_strong_Passw0rd!"
+        "DB_PASSWORD": "Your_strong_Passw0rd!",
+        "KEYCLOAK_AUTHORITY": "http://localhost:8080/realms/inventory",
+        "KEYCLOAK_AUDIENCE": "inventory-api",
+        "KEYCLOAK_SWAGGER_CLIENT_ID": "inventory-swagger",
+        "KEYCLOAK_REQUIRE_HTTPS_METADATA": "false",
+        "CORS_ALLOWED_ORIGINS": "http://localhost:4200"
       }
     }
   }

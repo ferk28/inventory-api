@@ -1,12 +1,12 @@
 -- Inventory database schema and seed data.
 -- Executed by the sqlserver-init container. Idempotent: safe to run more than once.
--- The database name is injected by sqlcmd: -v DbName="<value from DB_NAME env var>"
-IF DB_ID('$(DbName)') IS NULL
+-- The database name is injected by sqlcmd: -v DbName="InventoryDb"
+IF DB_ID('InventoryDb') IS NULL
 BEGIN
-    CREATE DATABASE [$(DbName)];
+    CREATE DATABASE [InventoryDb];
 END;
 GO
-USE [$(DbName)];
+USE [InventoryDb];
 GO
 IF OBJECT_ID('dbo.Categories', 'U') IS NULL
 BEGIN

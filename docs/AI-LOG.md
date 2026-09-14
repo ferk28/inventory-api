@@ -78,7 +78,7 @@ The schema was not written in one pass. It grew twice, both times because the co
 
 **AI output:** Added `IsActive` to the entity, the EF configuration and `db/init.sql`, with a `COL_LENGTH` guard so databases created before the change get the column too. Changed `ICategoryWriteRepository.ExistsAsync` to `FindByIdAsync` so the handlers can tell the two failures apart: unknown category gives `404`, inactive category gives `409`.
 
-It also found that my local database was **not** on `localhost,1433` as `launchSettings.json` claimed, but on `localhost\SQLEXPRESS`, and that a stray database literally named `$(DbName)` existed from a previous run of the script without its variable.
+It also found that my local database was **not** on `localhost,1433` as `launchSettings.json` claimed, but on `localhost\SQLEXPRESS`, and that a stray database literally named `InventoryDb` existed from a previous run of the script without its variable.
 
 **My action:** Fixed the local SQL Server so it listens on `localhost,1433`.
 

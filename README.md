@@ -22,6 +22,12 @@ from it is recorded in `docs/ADR.md`.
 
 ## Run everything with Docker
 
+> This compose file starts the API stack only. To bring up the front-end as
+> well, use the root `docker-compose.yml` one level up — see `../README.md`.
+> Both files use the same fixed container names, so run one or the other, never
+> both at once (`docker compose down` here before switching).
+
+
 ```bash
 cp .env.example .env      # adjust DB_PASSWORD if you like
 docker compose up --build
@@ -99,7 +105,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:5080/api/products
 You need a reachable SQL Server and a reachable Keycloak. Apply the schema:
 
 ```bash
-sqlcmd -S localhost,1433 -U sa -P "<password>" -C -v DbName="InventoryDb" -i db/init.sql
+sqlcmd -S localhost,1433 -U sa -P "admin" -C -v DbName="InventoryDb" -i db/init.sql
 ```
 
 `db/init.sql` is idempotent: it creates what is missing, adds columns introduced
