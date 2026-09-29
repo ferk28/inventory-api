@@ -45,7 +45,7 @@ public sealed class CategoryWriteRepository : ICategoryWriteRepository
         DbConnection connection = await _connectionContext.GetConnectionAsync(cancellationToken);
         CommandDefinition command = new(sql, category, _connectionContext.CurrentTransaction, cancellationToken: cancellationToken);
 
-        return await connection.QuerySingleAsync<int>(command);
+        return await UniqueConstraintGuard.RunAsync(() => connection.QuerySingleAsync<int>(command), DuplicateNameMessage(category));
     }
     public async Task<bool> HasActiveProductsAsync(int categoryId, CancellationToken cancellationToken)
     {
@@ -68,6 +68,10 @@ public sealed class CategoryWriteRepository : ICategoryWriteRepository
             """;
         DbConnection connection = await _connectionContext.GetConnectionAsync(cancellationToken);
         CommandDefinition command = new(sql, category, _connectionContext.CurrentTransaction, cancellationToken: cancellationToken);
-        await connection.ExecuteAsync(command);
+        await UniqueConstraintGuard.RunAsync(() => connection.ExecuteAsync(command), DuplicateNameMessage(category));
+    }
+    private static string DuplicateNameMessage(Category category)
+    {
+        return $"A category named '{category.Name}' already exists.";
     }
 }

@@ -34,7 +34,9 @@ public sealed class ProductWriteRepository : IProductWriteRepository
             VALUES (@Sku, @Name, @Description, @Price, @Stock, @CategoryId, @IsActive, @CreatedAt);
             """;
 
-        return await QuerySingleOrDefaultAsync<int>(sql, product, cancellationToken);
+        return await UniqueConstraintGuard.RunAsync(
+            () => QuerySingleOrDefaultAsync<int>(sql, product, cancellationToken),
+            $"A product with SKU '{product.Sku}' already exists.");
     }
     public async Task UpdateAsync(Product product, CancellationToken cancellationToken)
     {
