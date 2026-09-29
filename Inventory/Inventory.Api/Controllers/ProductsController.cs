@@ -13,6 +13,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace Inventory.Api.Controllers;
+[Authorize]
 [ApiController]
 [Route("api/products")]
 [Produces("application/json")]
@@ -67,10 +68,9 @@ public sealed class ProductsController : ControllerBase
     public async Task<ActionResult<ProductDto>> CreateProduct(CreateProductRequest request, CancellationToken cancellationToken)
     {
         CreateProductCommand command = new(request.Sku, request.Name, request.Description, request.Price, request.CategoryId);
-        int productId = await _sender.Send(command, cancellationToken);
-        ProductDto product = await _sender.Send(new GetProductByIdQuery(productId), cancellationToken);
+        ProductDto product = await _sender.Send(command, cancellationToken);
 
-        return CreatedAtAction(nameof(GetProductById), new { id = productId }, product);
+        return CreatedAtAction(nameof(GetProductById), new { id = product.Id }, product);
     }
     [Authorize(Policy = AuthorizationPolicies.Write)]
     [HttpPut("{id:int}")]

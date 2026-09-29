@@ -49,10 +49,9 @@ public sealed class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CategoryDto>> CreateCategory(CreateCategoryRequest request, CancellationToken cancellationToken)
     {
-        int categoryId = await _sender.Send(new CreateCategoryCommand(request.Name, request.Description), cancellationToken);
-        CategoryDto category = await _sender.Send(new GetCategoryByIdQuery(categoryId), cancellationToken);
+        CategoryDto category = await _sender.Send(new CreateCategoryCommand(request.Name, request.Description), cancellationToken);
 
-        return CreatedAtAction(nameof(GetCategoryById), new { id = categoryId }, category);
+        return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category);
     }
     [Authorize(Policy = AuthorizationPolicies.Write)]
     [HttpPut("{id:int}")]

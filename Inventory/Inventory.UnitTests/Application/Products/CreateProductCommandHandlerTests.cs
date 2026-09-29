@@ -2,6 +2,7 @@ using FluentAssertions;
 using Inventory.Application.Abstractions.Persistence;
 using Inventory.Application.Common.Exceptions;
 using Inventory.Application.Products.Commands.CreateProduct;
+using Inventory.Application.Products.Queries;
 using Inventory.Domain.Entities;
 using NSubstitute;
 namespace Inventory.UnitTests.Application.Products;
@@ -35,12 +36,22 @@ public sealed class CreateProductCommandHandlerTests
             Arg.Any<CancellationToken>());
     }
     [Fact]
-    public async Task Handle_WithValidCommand_ReturnsTheNewProductId()
+    public async Task Handle_WithValidCommand_ReturnsTheNewProductWithItsId()
     {
         GivenCategory(CreateActiveCategory());
         _productWriteRepository.AddAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>()).Returns(7);
-        int productId = await _handler.Handle(_command, CancellationToken.None);
-        productId.Should().Be(7);
+        ProductDto product = await _handler.Handle(_command, CancellationToken.None);
+        product.Id.Should().Be(7);
+        product.Sku.Should().Be("SKU-001");
+        product.Stock.Should().Be(0);
+        product.IsActive.Should().BeTrue();
+    }
+    [Fact]
+    public async Task Handle_WithValidCommand_ReturnsTheCategoryName()
+    {
+        GivenCategory(CreateActiveCategory());
+        ProductDto product = await _handler.Handle(_command, CancellationToken.None);
+        product.CategoryName.Should().Be("Electronics");
     }
     [Fact]
     public async Task Handle_WithUnknownCategory_ThrowsNotFoundException()
@@ -114,7 +125,7 @@ public sealed class CreateProductCommandHandlerTests
     }
     private void RunTransactionInline()
     {
-        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<CancellationToken, Task<int>>>(), Arg.Any<CancellationToken>())
-            .Returns(call => call.Arg<Func<CancellationToken, Task<int>>>().Invoke(call.Arg<CancellationToken>()));
+        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<CancellationToken, Task<ProductDto>>>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.Arg<Func<CancellationToken, Task<ProductDto>>>().Invoke(call.Arg<CancellationToken>()));
     }
 }

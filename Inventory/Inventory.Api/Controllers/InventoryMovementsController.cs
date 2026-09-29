@@ -10,6 +10,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace Inventory.Api.Controllers;
+[Authorize]
 [ApiController]
 [Route("api/inventory/movements")]
 [Produces("application/json")]
@@ -53,9 +54,8 @@ public sealed class InventoryMovementsController : ControllerBase
     public async Task<ActionResult<MovementDto>> RegisterMovement(RegisterMovementRequest request, CancellationToken cancellationToken)
     {
         RegisterInventoryMovementCommand command = new(request.ProductId, request.Type, request.Quantity, request.Reason);
-        int movementId = await _sender.Send(command, cancellationToken);
-        MovementDto movement = await _sender.Send(new GetMovementByIdQuery(movementId), cancellationToken);
+        MovementDto movement = await _sender.Send(command, cancellationToken);
 
-        return CreatedAtAction(nameof(GetMovementById), new { id = movementId }, movement);
+        return CreatedAtAction(nameof(GetMovementById), new { id = movement.Id }, movement);
     }
 }

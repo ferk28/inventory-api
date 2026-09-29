@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Inventory.Application.Abstractions.Persistence;
 using Inventory.Application.Categories.Commands.CreateCategory;
+using Inventory.Application.Categories.Queries;
 using Inventory.Application.Common.Exceptions;
 using Inventory.Domain.Entities;
 using NSubstitute;
@@ -32,12 +33,14 @@ public sealed class CreateCategoryCommandHandlerTests
             Arg.Is<Category>(category => category.IsActive), Arg.Any<CancellationToken>());
     }
     [Fact]
-    public async Task Handle_WithFreeName_ReturnsTheNewCategoryId()
+    public async Task Handle_WithFreeName_ReturnsTheNewCategoryWithItsId()
     {
         GivenNameIsTaken(false);
         _categoryWriteRepository.AddAsync(Arg.Any<Category>(), Arg.Any<CancellationToken>()).Returns(9);
-        int categoryId = await _handler.Handle(_command, CancellationToken.None);
-        categoryId.Should().Be(9);
+        CategoryDto category = await _handler.Handle(_command, CancellationToken.None);
+        category.Id.Should().Be(9);
+        category.Name.Should().Be("Electronics");
+        category.IsActive.Should().BeTrue();
     }
     [Fact]
     public async Task Handle_WithTakenName_ThrowsConflictException()
@@ -69,8 +72,8 @@ public sealed class CreateCategoryCommandHandlerTests
     }
     private void GivenNameIsTaken(bool taken)
     {
-        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<CancellationToken, Task<int>>>(), Arg.Any<CancellationToken>())
-            .Returns(call => call.Arg<Func<CancellationToken, Task<int>>>().Invoke(call.Arg<CancellationToken>()));
+        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<CancellationToken, Task<CategoryDto>>>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.Arg<Func<CancellationToken, Task<CategoryDto>>>().Invoke(call.Arg<CancellationToken>()));
         _categoryWriteRepository.NameExistsAsync(Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<CancellationToken>()).Returns(taken);
     }
 }

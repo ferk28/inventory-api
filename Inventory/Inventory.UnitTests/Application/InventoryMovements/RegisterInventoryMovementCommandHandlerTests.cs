@@ -2,6 +2,7 @@ using FluentAssertions;
 using Inventory.Application.Abstractions.Persistence;
 using Inventory.Application.Common.Exceptions;
 using Inventory.Application.InventoryMovements.Commands.RegisterInventoryMovement;
+using Inventory.Application.InventoryMovements.Queries;
 using Inventory.Domain.Entities;
 using Inventory.Domain.Enums;
 using Inventory.Domain.Exceptions;
@@ -38,14 +39,25 @@ public sealed class RegisterInventoryMovementCommandHandlerTests
             .UpdateStockAsync(Arg.Is<Product>(product => product.Stock == 6), Arg.Any<CancellationToken>());
     }
     [Fact]
-    public async Task Handle_WithValidMovement_ReturnsNewMovementId()
+    public async Task Handle_WithValidMovement_ReturnsTheNewMovementWithItsId()
     {
         RunTransactionInline();
         GivenProduct(CreateProductWithStock(10));
         _movementWriteRepository.AddAsync(Arg.Any<InventoryMovement>(), Arg.Any<CancellationToken>()).Returns(42);
         RegisterInventoryMovementCommand command = new(1, MovementType.In, 5, "restock");
-        int movementId = await _handler.Handle(command, CancellationToken.None);
-        movementId.Should().Be(42);
+        MovementDto movement = await _handler.Handle(command, CancellationToken.None);
+        movement.Id.Should().Be(42);
+        movement.ProductSku.Should().Be("SKU-001");
+        movement.Quantity.Should().Be(5);
+    }
+    [Fact]
+    public async Task Handle_WithValidMovement_ReturnsTheStockLeftAfterIt()
+    {
+        RunTransactionInline();
+        GivenProduct(CreateProductWithStock(10));
+        RegisterInventoryMovementCommand command = new(1, MovementType.Out, 4, "sale");
+        MovementDto movement = await _handler.Handle(command, CancellationToken.None);
+        movement.StockAfter.Should().Be(6);
     }
     [Fact]
     public async Task Handle_WithOutMovementGreaterThanStock_ThrowsInsufficientStockException()
@@ -103,12 +115,12 @@ public sealed class RegisterInventoryMovementCommandHandlerTests
         RegisterInventoryMovementCommand command = new(1, MovementType.In, 5, "restock");
         await _handler.Handle(command, CancellationToken.None);
         await _unitOfWork.Received(1).ExecuteInTransactionAsync(
-            Arg.Any<Func<CancellationToken, Task<int>>>(), Arg.Any<CancellationToken>());
+            Arg.Any<Func<CancellationToken, Task<MovementDto>>>(), Arg.Any<CancellationToken>());
     }
     private void RunTransactionInline()
     {
-        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<CancellationToken, Task<int>>>(), Arg.Any<CancellationToken>())
-            .Returns(call => call.Arg<Func<CancellationToken, Task<int>>>().Invoke(call.Arg<CancellationToken>()));
+        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<CancellationToken, Task<MovementDto>>>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.Arg<Func<CancellationToken, Task<MovementDto>>>().Invoke(call.Arg<CancellationToken>()));
     }
     private void GivenProduct(Product product)
     {
