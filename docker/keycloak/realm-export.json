@@ -17,7 +17,7 @@
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
-      "secret": "inventory-api-secret",
+      "secret": "${KEYCLOAK_API_CLIENT_SECRET}",
       "serviceAccountsEnabled": true,
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": false,
@@ -66,7 +66,7 @@
       "emailVerified": true,
       "firstName": "Inventory",
       "lastName": "Administrator",
-      "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_ADMIN_PASSWORD}", "temporary": false }],
       "realmRoles": ["inventory.read", "inventory.write"]
     },
     {
@@ -76,7 +76,7 @@
       "emailVerified": true,
       "firstName": "Inventory",
       "lastName": "Reader",
-      "credentials": [{ "type": "password", "value": "reader", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "${KEYCLOAK_DEMO_READER_PASSWORD}", "temporary": false }],
       "realmRoles": ["inventory.read"]
     },
     {

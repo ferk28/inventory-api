@@ -184,7 +184,7 @@ Pipeline behaviors: `ValidationBehavior` (FluentValidation) → handler. Command
 ## 9. Authentication (OAuth2)
 
 - Provider: Keycloak (`quay.io/keycloak/keycloak:25`) started by docker-compose with an imported realm `inventory`.
-- Client `inventory-api` (confidential) — flow: **Client Credentials** for machine-to-machine, plus a test user `admin / admin` with the **Password** flow for Swagger convenience.
+- Client `inventory-api` (confidential) — flow: **Client Credentials** for machine-to-machine, plus the demo users `admin` and `reader` (passwords from `.env`) with the **Password** flow for Swagger convenience.
 - API validates JWTs with `AddAuthentication().AddJwtBearer()`: `Authority = KEYCLOAK_AUTHORITY`, `Audience = inventory-api`.
 - Roles: `inventory.read` (GET endpoints) and `inventory.write` (POST/PUT/DELETE). Enforced with authorization policies.
 - Swagger UI exposes the OAuth2 "Authorize" button using the Password flow against the Keycloak token endpoint.
@@ -199,7 +199,9 @@ Pipeline behaviors: `ValidationBehavior` (FluentValidation) → handler. Command
 | `KEYCLOAK_REQUIRE_HTTPS_METADATA` | API | `false` locally, `true` anywhere else |
 | `KEYCLOAK_SWAGGER_CLIENT_ID` | API (Swagger UI) | `inventory-swagger` |
 | `KEYCLOAK_PORT` | Keycloak container | `8080` |
-| `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD` | Keycloak container | `admin` / `admin` |
+| `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD` | Keycloak container | `admin` / `...` |
+| `KEYCLOAK_API_CLIENT_SECRET` | Keycloak realm import | `...` |
+| `KEYCLOAK_DEMO_ADMIN_PASSWORD` / `KEYCLOAK_DEMO_READER_PASSWORD` | Keycloak realm import | `...` |
 | `ASPNETCORE_ENVIRONMENT` | API | `Development` |
 
 The API builds its connection string from the `DB_*` parts in `ConnectionStringBuilder`, rather than taking a full connection string, so no secret is ever written as one opaque value.

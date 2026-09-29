@@ -9,10 +9,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DB_HOST": "localhost",
-        "DB_PORT": "1433",
         "DB_NAME": "InventoryDb",
         "DB_USER": "sa",
-        "DB_PASSWORD": "Your_strong_Passw0rd!",
         "KEYCLOAK_AUTHORITY": "http://localhost:8080/realms/inventory",
         "KEYCLOAK_AUDIENCE": "inventory-api",
         "KEYCLOAK_SWAGGER_CLIENT_ID": "inventory-swagger",
@@ -28,10 +26,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DB_HOST": "localhost",
-        "DB_PORT": "1433",
         "DB_NAME": "InventoryDb",
         "DB_USER": "sa",
-        "DB_PASSWORD": "Your_strong_Passw0rd!",
         "KEYCLOAK_AUTHORITY": "http://localhost:8080/realms/inventory",
         "KEYCLOAK_AUDIENCE": "inventory-api",
         "KEYCLOAK_SWAGGER_CLIENT_ID": "inventory-swagger",

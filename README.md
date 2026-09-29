@@ -30,7 +30,7 @@ from it is recorded in `docs/ADR.md`.
 
 
 ```bash
-cp .env.example .env      # adjust DB_PASSWORD if you like
+cp .env.example .env      # then replace every change-me value
 docker compose up --build
 ```
 
@@ -50,7 +50,7 @@ to the container over the compose network on 1433 either way.
 |---|---|
 | Swagger UI | http://localhost:5080/swagger |
 | Health | http://localhost:5080/health |
-| Keycloak | http://localhost:8080 (admin / admin) |
+| Keycloak | http://localhost:8080 (`KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD`) |
 
 The init container is expected to finish and stay at `Exited (0)`. If the schema
 failed, its logs say why:
@@ -61,12 +61,14 @@ docker compose logs sqlserver-init
 
 ## Get a token
 
-Two Keycloak users ship with the realm, so the two roles can be told apart:
+Two Keycloak users ship with the realm, so the two roles can be told apart. Their
+passwords are not in the repository: Keycloak takes them from your `.env` when it
+imports the realm.
 
 | User | Password | Roles |
 |---|---|---|
-| `admin` | `admin` | `inventory.read`, `inventory.write` |
-| `reader` | `reader` | `inventory.read` only |
+| `admin` | `KEYCLOAK_DEMO_ADMIN_PASSWORD` | `inventory.read`, `inventory.write` |
+| `reader` | `KEYCLOAK_DEMO_READER_PASSWORD` | `inventory.read` only |
 
 `reader` can list and read but gets `403` on any `POST`, `PUT` or `DELETE`.
 
@@ -82,17 +84,18 @@ curl -s -X POST http://localhost:8080/realms/inventory/protocol/openid-connect/t
   -d grant_type=password \
   -d client_id=inventory-swagger \
   -d username=admin \
-  -d password=admin | jq -r .access_token
+  -d password="$KEYCLOAK_DEMO_ADMIN_PASSWORD" | jq -r .access_token
 ```
 
 For machine-to-machine work, the confidential `inventory-api` client supports
-client credentials:
+client credentials. Its secret is not in the repository: Keycloak substitutes
+`KEYCLOAK_API_CLIENT_SECRET` from your `.env` into the realm when it imports it.
 
 ```bash
 curl -s -X POST http://localhost:8080/realms/inventory/protocol/openid-connect/token \
   -d grant_type=client_credentials \
   -d client_id=inventory-api \
-  -d client_secret=inventory-api-secret | jq -r .access_token
+  -d client_secret="$KEYCLOAK_API_CLIENT_SECRET" | jq -r .access_token
 ```
 
 Then call the API with it:
@@ -106,7 +109,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:5080/api/products
 You need a reachable SQL Server and a reachable Keycloak. Apply the schema:
 
 ```bash
-sqlcmd -S localhost,1433 -U sa -P "admin" -C -v DbName="InventoryDb" -i db/init.sql
+sqlcmd -S localhost,1433 -U sa -P "$DB_PASSWORD" -C -v DbName="InventoryDb" -i db/init.sql
 ```
 
 `db/init.sql` is idempotent: it creates what is missing, adds columns introduced
@@ -114,8 +117,15 @@ after the first release, and seeds only when the database is empty. Running it
 again on a populated database is safe.
 
 Then run the API. Configuration comes from environment variables only (Clean Code
-rule 5) — see `.env.example` for the full list. For Visual Studio, the `DB_*` and
-`KEYCLOAK_*` values are already in `Inventory/Inventory.Api/Properties/launchSettings.json`.
+rule 5) — see `.env.example` for the full list. For Visual Studio, the non-secret
+values are already in `Inventory/Inventory.Api/Properties/launchSettings.json`;
+the two that change per machine, the port and the password, go in user secrets so
+they never reach the repository:
+
+```bash
+dotnet user-secrets set DB_PORT 1433 --project Inventory/Inventory.Api
+dotnet user-secrets set DB_PASSWORD '<your DB_PASSWORD>' --project Inventory/Inventory.Api
+```
 
 ```bash
 cd Inventory
@@ -144,11 +154,12 @@ cannot see, because those mock `IUnitOfWork`: that a failure mid-operation rolls
 back every write, and that the repositories share the connection the unit of work
 opened (ADR-006). Every one of them rolls back, so they leave nothing behind, but
 point them at a throwaway database, never a real one. They read `DB_*` from the
-environment and fall back to `localhost,1433 / InventoryDb / sa`. `DB_PASSWORD`
-has no fallback: set it first, or the tests fail naming the missing variable.
+repository's `.env`, the same file docker compose uses, and environment variables
+override it. There are no fallback values: if a variable is missing, the tests
+fail naming it.
 
 ```bash
-export DB_PASSWORD='Your_strong_Passw0rd!'   # PowerShell: $env:DB_PASSWORD = '...'
+docker compose up -d --wait sqlserver sqlserver-init   # then run the tests above
 ```
 
 Coverage:

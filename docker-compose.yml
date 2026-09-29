@@ -34,7 +34,11 @@ services:
     command: ["start-dev", "--import-realm"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD must be set in .env}
+      # Substituted into realm-export.json on import, so no secret or password lives in the repository.
+      KEYCLOAK_API_CLIENT_SECRET: ${KEYCLOAK_API_CLIENT_SECRET:?KEYCLOAK_API_CLIENT_SECRET must be set in .env}
+      KEYCLOAK_DEMO_ADMIN_PASSWORD: ${KEYCLOAK_DEMO_ADMIN_PASSWORD:?KEYCLOAK_DEMO_ADMIN_PASSWORD must be set in .env}
+      KEYCLOAK_DEMO_READER_PASSWORD: ${KEYCLOAK_DEMO_READER_PASSWORD:?KEYCLOAK_DEMO_READER_PASSWORD must be set in .env}
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT}
       KC_HOSTNAME_STRICT: "false"

@@ -34,7 +34,7 @@ public static class SwaggerExtensions
         return new OpenApiSecurityScheme
         {
             Type = SecuritySchemeType.OAuth2,
-            Description = "Keycloak realm 'inventory'. Use the test user admin / admin.",
+            Description = "Keycloak realm 'inventory'. Sign in as the demo user admin (read and write) or reader (read only); their passwords are in your .env.",
             Flows = new OpenApiOAuthFlows
             {
                 Password = new OpenApiOAuthFlow
