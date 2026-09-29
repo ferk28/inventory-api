@@ -21,14 +21,14 @@ Working language with the AI: Spanish. All generated artifacts (spec, code, docs
 
 **AI output:** `docs/SPEC.md` v1: domain model, business rules, full API contract, CQRS handler map, auth setup, environment variables, Docker layout, test plan, Clean Code constraints. The AI made three design assumptions explicitly and asked me to confirm them (see ADR-001..003).
 
-**My action:** Reviewed the spec. <!-- TODO: write what you changed, e.g. "Removed initialStock", "Kept soft delete" -->
+**My action:** Reviewed the spec and answered its three assumptions: kept soft delete for products (ADR-001), chose that products always start at 0 instead of accepting an optional `initialStock` (ADR-002), and accepted Keycloak in docker-compose (ADR-003).
 
 ### Prompt 3 — Step 0 in detail
 > "En la conversación anterior de este proyecto me diste pasos a realizar, ¿podemos empezar con el paso 0 detalladamente?"
 
 **AI output:** Repository setup instructions, templates for this file, `ADR.md` and `decisions.md`, and the first commit message.
 
-**My action:** <!-- TODO -->
+**My action:** Created the repository (`371804d`) and scaffolded the four-layer solution (`0de8862`), then placed the templates in `docs/`.
 
 ---
 
@@ -146,7 +146,7 @@ It then **started the API and exercised it with curl against the real database**
 
 It also cleaned up the rows its smoke tests had written to my database.
 
-**My action:** <!-- TODO: confirm you reviewed these two fixes. -->
+**My action:** The AI generated the controllers and the exception handling from my spec; I defined the error format (RFC 7807, SPEC section 7.1).
 
 Commits: `e39fad4`, `4526f87`, `ef9db77`.
 
@@ -164,7 +164,7 @@ It identified three failure modes that all compile and start cleanly and only fa
 - Keycloak issues `aud=account` by default; without an audience mapper in the realm, every token is rejected.
 - The token issuer and the discovery address are different hosts under Docker.
 
-**My action:** <!-- TODO -->
+**My action:** I reviewed each failure mode against the difference between `401` (the API cannot identify the caller: missing or invalid token) and `403` (the caller is identified but lacks the required role). That distinction pointed to the cause of each case: the `aud=account` issue produced `401` because the token itself was rejected, while the `realm_access` issue produced `403` because the token was valid but the roles were not being read. I accepted the three fixes the AI proposed: a claims transformation that maps `realm_access.roles` into standard role claims, an audience mapper in the realm export, and separate settings for the issuer and the discovery address. Docker was not running yet, so I could only verify them with real tokens once the stack ran in Phase 8, which is where the issuer fix turned out to be incomplete.
 
 Commits: `09dce8a`, `06aaf69`, `4a2c7d8`.
 
@@ -192,7 +192,7 @@ Commits: `d56ee3c`, `11f9749`.
 
 **AI output:** The `README.md` (setup, Docker, local run, both test suites, how to get a token for either user) and this log.
 
-**My action:** <!-- TODO: review these entries for accuracy and complete the TODOs above. -->
+**My action:** I added to the README how to build the Docker image and run the API locally.
 
 ---
 
@@ -214,31 +214,51 @@ Two further defects surfaced from calling the running API:
 
 **Verified after the fixes**, from a torn-down volume and a fresh `docker compose up --build -d --wait`: all four containers reach their expected state (`sqlserver-init` at `Exited (0)`), `/health` and Swagger answer `200`, `/api/products` answers `401` without a token and `200` with one, `reader` gets `403` on a write while `admin` gets `201`, the password and client-credentials grants both work, and the business rules answer on the wire — `409` for a duplicate name and for deleting a category with active products, `400` with the field dictionary, `404`, and `422` for both insufficient stock (BR-07) and an inactive product (BR-09). A movement pair `In 7` / `Out 3` left the product at `stock 4` with `stockAfter` stamped `7` then `4`. The 138 unit tests stay green after the serialiser change.
 
-**My action:** <!-- TODO: confirm you reviewed these five fixes, and note that item 1 was my own .env, not the AI's. -->
+**My action:** Defect 1 also exposed a wider problem: weak credentials were versioned in the repository. I moved every secret out of `docker-compose.yml` into a `.env` file excluded from Git, left only variable references in the compose file, and documented each variable in `.env.example` with a value that meets the SQL Server password policy. I also removed the `admin` password fallback from the integration tests' `DatabaseScopeFactory`. The API already fails at startup when a `DB_*` variable is missing, and `docker compose` now refuses to start without `DB_PASSWORD`, instead of silently using a weak default.
+
+A later commit of mine (`86052e5`) reintroduced `admin` hard-coded in `docker-compose.yml`, which again kept SQL Server from starting. The project review caught it, and the compose file went back to reading every value from `.env` (Phase 9).
 
 ---
 
-## Summary of how the AI was supervised
+## Phase 9 — Acting on the project review (2026-09-29)
+
+### Prompt 17
+> "ayudame con este punto del feedback del proyecto, como lo harias?" / "la A, arma el borrador y el ADR-013" / "limpia los TODO del AI-LOG" / "puedes corregir el codigo porfavor"
+
+**Context:** the review marked `docs/decisions.md` as critical: the template comment was still in the file, answer 1 ended in an empty `**Outcome:**`, and the answers had spelling mistakes. It asked for real decisions from this project, each closed with a concrete outcome.
+
+**AI output:**
+- It mapped the three questions to decisions already recorded in `ADR.md` (ADR-010, ADR-006 and ADR-008), checked each technical claim against the code, and drafted the answers.
+- It pointed out that the file's header says the answers are mine, so it offered two options: I rewrite its draft in my own words, or the header says the AI wrote them. I chose the first.
+- It wrote ADR-013 (exceptions translated in one place instead of `Result<T>`), a decision that was already in the code but had never been recorded.
+- It filled the two `TODO` entries of this log that git history could confirm, and asked me about the rest.
+- Reviewing this log against the repository, it found that my commit `86052e5` had hard-coded `admin` as the SQL Server password in `docker-compose.yml`, so `docker compose up` could not start the database and the log claimed the opposite. It restored the `${DB_*}` variables, made `DB_PASSWORD` mandatory, and removed the `admin` fallback from the integration tests. It also found three statements in this log that contradicted other entries, and corrected them.
+
+**My action:** I rewrote the three answers in `decisions.md` in my own words, and the AI then corrected spelling and grammar. I answered the open `TODO` entries of this log myself.
 
 **What the AI proposed that I rejected or changed.**
-- It proposed amending my commit `d637e27` to follow Conventional Commits; I chose to leave the history as it was and be strict from that point on.
-- ADR-005: it left the framework decision open as `Proposed`; I chose .NET 10 so no package downgrade was needed.
-<!-- TODO: add anything else you turned down. -->
+- It proposed amending my commit `d637e27` to follow Conventional Commits. I kept the history as it was, because rewriting commits already pushed to a public repository changes their hashes for anyone who has cloned it, and applied the convention strictly from that point on.
+- ADR-005 was left open as `Proposed`, with the framework version undecided. I chose .NET 10, which meets the ".NET 8 or higher" requirement and avoided downgrading packages already referenced.
 
-**Deviations from the spec the AI caught in its own generated code.**
+**Deviations from the spec found during review.**
+The AI's reviews against `SPEC.md` (Prompts 5 and 9) and its runs of the real API (Phases 4 and 8) found the following gaps in code it had generated:
 - BR-09 was never implemented: `Product.ApplyMovement` checked stock but not whether the product was active.
-- BR-03 was half implemented, because `Categories.IsActive` did not exist.
+- BR-03 was only half implemented, because `Categories.IsActive` did not exist.
 - `MovementDto` returned `stockAfter` with no column behind it (ADR-009).
 - `SPEC.md` section 7.3 still specified `initialStock` after ADR-002 had removed it.
-- Every endpoint was unprotected: `UseAuthorization()` was present but no `[Authorize]` attribute existed.
-- `MovementType` crossed the wire as `1` and `2` and refused the documented `"In"` / `"Out"` body, against SPEC section 7.4 (ADR-012).
-- The container ran as root, although SPEC section 11 asked for a non-root user.
+- Every endpoint was unprotected: `UseAuthorization()` was present, but no `[Authorize]` attribute existed.
+- `MovementType` crossed the wire as `1` and `2` and rejected the documented `"In"` / `"Out"` body, against SPEC section 7.4 (ADR-012).
+- The container ran as root, although SPEC section 11 required a non-root user.
 
-**Mistakes the AI made and corrected.**
-- Removing `initialStock` from the spec took the whole `Body/Params` cell of the `POST /products` row with it, leaving a broken three-column table. Caught and repaired in `19cb956`.
-- A `git add -A` swept an edit I was making to `ADR.md` into an unrelated commit (`c191398`).
+**Mistakes the AI made.**
+- Removing `initialStock` from the spec also deleted the `Body/Params` cell of the `POST /products` row, leaving a broken three-column table. It was caught and repaired in `19cb956`.
+- A `git add -A` swept an unrelated edit I was making to `ADR.md` into commit `c191398`. Since then, I stage files explicitly by path.
+
+**Mistakes I made.**
+- I used a deliberately weak password in my local `.env` to make testing easier. SQL Server rejected it, so the database never started and the whole stack failed. It also reflected a wider problem: weak credentials were versioned in the repository. I moved every secret into an untracked `.env`, documented each variable in `.env.example` with a value that meets the SQL Server password policy, and removed the `sa/admin` fallback from the code. The lesson: a convenient shortcut in development can hide exactly the failure a reviewer will hit first.
+
+**Where I worked by hand.**
+- I chose the architecture from the AI's recommendations (ADR-000): the layers, the models each one owns, and how the services that run the application fit together. I then created the solution structure myself in Visual Studio (`0de8862`): four Clean Architecture projects plus two test projects. The AI's 8-step roadmap (Prompt 1) was the plan I followed.
 
 **Where verification came from running the code, not from tests.**
-The two most valuable defects of the whole exercise — the missing `errors` dictionary and the Spanish validation messages — were found by starting the API and calling it with curl. Both had passing unit tests. Phase 8 repeated the lesson at the infrastructure level: `docker compose config` was happy, the image built, all 138 tests passed, and the stack still could not issue a token, validate one, or accept the movement body its own spec documents. This is the main thing I take from the exercise: a green suite proves the units, not the wire format, and a valid config file proves the syntax, not the system.
-
-<!-- TODO: add where you wrote or rewrote code by hand instead of prompting. -->
+I ran the database scripts locally and checked that the tables and indexes were created as specified. The two most valuable defects of the whole exercise, the missing `errors` dictionary and the Spanish validation messages, were found by starting the API and calling it with curl. Both had passing unit tests. Phase 8 repeated the lesson at the infrastructure level: `docker compose config` passed, the image built, all 138 tests were green, and the stack still could not issue a token, validate one, or accept the movement body documented in its own spec. This is the main thing I take from the exercise: a green test suite proves the units, not the wire format, and a valid configuration file proves the syntax, not the system.

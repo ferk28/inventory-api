@@ -288,3 +288,26 @@ Registration rules that make or break it:
 - Renaming an enum member becomes a breaking API change. That is the right trade: the names are the contract, and the numeric values stay an internal storage detail of the `TINYINT` column.
 - Option 3 was rejected because it moves parsing into the controller and produces a different error shape than every other bad field.
 - No unit test caught this. All 138 pass either side of the change, because they construct commands in memory and never cross the serialiser — the same blind spot recorded for the `errors` dictionary in Phase 4.
+
+---
+
+## ADR-013 — Exceptions translated in one place instead of `Result<T>`
+
+- **Date:** 2026-09-29
+- **Proposed by:** AI (recorded after the fact, following the project review; the approach was in place since Prompt 3)
+- **Status:** Accepted
+
+**Context:** Handlers have four expected ways to fail: invalid input, a missing resource, a conflict with existing data, and a broken domain rule (BR-07 insufficient stock, BR-09 inactive product). Each one must reach the client as a `ProblemDetails` body with the right status code. The domain rules are enforced inside `Product.ApplyMovement`, and validation runs in a MediatR pipeline behavior before the handler.
+
+**Options:**
+1. Return `Result<T>` from every handler and domain method, and map failures to HTTP in each controller action.
+2. Throw typed exceptions (`ValidationException`, `NotFoundException`, `ConflictException`, `DomainException`) and translate them in a single `IExceptionHandler`.
+
+**Decision:** Option 2. `ValidationBehavior` throws FluentValidation's `ValidationException`, handlers throw `NotFoundException` and `ConflictException`, and the domain throws subclasses of `DomainException`. `ProblemDetailsMapper` is the only place that maps them to `400`, `404`, `409` and `422`; anything else becomes a `500` with a generic detail and is logged.
+
+**Consequences:**
+- Handlers read as one linear sequence, and controllers carry no error-mapping code. The response shape is the same for every endpoint, because one mapper produces all of them.
+- An exception thrown inside `IUnitOfWork.ExecuteInTransactionAsync` rolls the transaction back with no extra code, which is exactly what BR-08 needs when a domain rule fails midway through a movement.
+- The mapper is a pure function, so every status code is covered by `ProblemDetailsMapperTests` without starting the API.
+- The cost is that failures are not visible in method signatures: nothing in `Task<ProductDto>` says it can throw `NotFoundException`, and the compiler cannot force a caller to handle it. Expected failures also pay the cost of building a stack trace, which is acceptable at this request volume.
+- A new exception type that is not added to the mapper silently becomes a `500`. The mapper tests are the guard against that.
