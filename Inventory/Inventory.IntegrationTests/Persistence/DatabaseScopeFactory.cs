@@ -22,8 +22,7 @@ public static class DatabaseScopeFactory
             ["DB_HOST"] = "localhost",
             ["DB_PORT"] = "1433",
             ["DB_NAME"] = "InventoryDb",
-            ["DB_USER"] = "sa",
-            ["DB_PASSWORD"] = "admin"
+            ["DB_USER"] = "sa"
         };
     }
 }

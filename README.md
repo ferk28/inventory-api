@@ -144,7 +144,12 @@ cannot see, because those mock `IUnitOfWork`: that a failure mid-operation rolls
 back every write, and that the repositories share the connection the unit of work
 opened (ADR-006). Every one of them rolls back, so they leave nothing behind, but
 point them at a throwaway database, never a real one. They read `DB_*` from the
-environment and fall back to `localhost,1433 / InventoryDb / sa / admin`.
+environment and fall back to `localhost,1433 / InventoryDb / sa`. `DB_PASSWORD`
+has no fallback: set it first, or the tests fail naming the missing variable.
+
+```bash
+export DB_PASSWORD='Your_strong_Passw0rd!'   # PowerShell: $env:DB_PASSWORD = '...'
+```
 
 Coverage:
 
