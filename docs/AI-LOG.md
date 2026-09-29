@@ -262,3 +262,29 @@ The AI's reviews against `SPEC.md` (Prompts 5 and 9) and its runs of the real AP
 
 **Where verification came from running the code, not from tests.**
 I ran the database scripts locally and checked that the tables and indexes were created as specified. The two most valuable defects of the whole exercise, the missing `errors` dictionary and the Spanish validation messages, were found by starting the API and calling it with curl. Both had passing unit tests. Phase 8 repeated the lesson at the infrastructure level: `docker compose config` passed, the image built, all 138 tests were green, and the stack still could not issue a token, validate one, or accept the movement body documented in its own spec. This is the main thing I take from the exercise: a green test suite proves the units, not the wire format, and a valid configuration file proves the syntax, not the system.
+
+### Prompt 18 — Written feedback, in Claude Code (2026-09-29)
+> "puedes darle una revisada a los cambios con base al documento [Fernando_Feedback.pdf] para ver si esta todo bien cumpliendo?" / "sí, sigue con esos puntos" / "sigue con decisions.md"
+
+**Context:** the written feedback for phase 3 arrived as a PDF. It asked for four things: `decisions.md` rewritten with real decisions and concrete outcomes; unique-index violations answered with `409` instead of `500`; the second `_sender.Send` removed from the `POST` actions; and every secret moved out of the repository, with `[Authorize]` at class level on `ProductsController` and `InventoryMovementsController`. This session ran in Claude Code, inside the repository, instead of claude.ai.
+
+**AI output:**
+- It checked every point of the PDF against the repository and listed what was done, partly done and missing.
+- `409` on a duplicate (`a50b9a1`): the write repositories translate SQL errors 2601 and 2627 into `ConflictException`, so the mapper does not depend on an infrastructure type. Three integration tests write the duplicate straight into SQL Server.
+- One `Send` per `POST` (`7d81b83`): `CreateProduct`, `CreateCategory` and `RegisterInventoryMovement` return their DTO, built from the entity they just wrote. The same commit added `[Authorize]` at class level on the two controllers.
+- Secrets (`987a723`): the `inventory-api` client secret and the demo users' passwords became `${...}` placeholders that Keycloak fills from `.env` on import, and compose refuses to start without them. `launchSettings.json` no longer carries `DB_PORT` or `DB_PASSWORD`, which moved to user secrets. `DatabaseScopeFactory` lost its `localhost/sa` fallback: the integration tests read the repository's `.env` and fail naming any missing variable.
+- For `decisions.md`, it drafted the section *Other decisions behind this API* (ADR-000 and ADR-013) and proposed rephrasings for the three answers. Because the file says the answers are mine, it kept its drafts out of the repository until I chose what to use.
+
+**My action:**
+- I brought up SQL Server and Keycloak with Docker and ran the integration tests myself. I confirmed that the client-credentials grant works with the secret from `.env`; the AI then checked that the old secret and `admin/admin` are rejected.
+- In `decisions.md` I rewrote the Unit of Work example, merged the last sentences of answer 1, and pasted the new section. I accepted the AI's criterion for answer 2 and its "What I learned" for answer 3, and I changed the header so it says which parts are rephrasings or drafts by the AI.
+
+**Problems found while verifying.**
+- The first SQL Server container was created with the example password from `.env.example`, not mine. SQL Server only applies `MSSQL_SA_PASSWORD` when the volume is created, so I recreated it with `docker compose down -v`.
+- The integration tests still failed with `Login failed for user 'sa'`, because a local SQL Server Express instance was also listening on port 1433 and answered first. I moved the container to port 14330 through `DB_PORT`.
+
+**Mistakes the AI made.**
+- It checked the new password with `sqlcmd` inside the container and reported that it worked. That check could not see the SQL Server Express instance on the host, so the tests failed when I ran them.
+- It told me that answers 2 and 3 of `decisions.md` had six sentences each; they have seven and eight. It corrected the count when it reviewed the final file.
+
+**Known trade-off.** A `POST` now returns `createdAt` with fractions of a second, taken from the entity, while a later `GET` returns it rounded to the second, because the column is `DATETIME2(0)`.
