@@ -20,6 +20,7 @@ from it is recorded in `docs/ADR.md`.
 | Validation | FluentValidation through a MediatR pipeline behavior |
 | Tests | xUnit, NSubstitute, FluentAssertions, coverlet |
 | Docs | Swagger UI with an OAuth2 Authorize button |
+| Web UI | Razor Pages client of the API, published as a self-contained Windows `.exe` |
 
 ## Run everything with Docker
 
@@ -135,6 +136,53 @@ dotnet run --project Inventory.Api
 If a variable is missing, startup fails with a message naming it, rather than
 with a connection error later.
 
+## Web UI
+
+`Inventory.Web` is a Razor Pages app that uses the API exactly as any other
+client would: over HTTP, with the signed-in user's token. It covers every
+operation the API exposes — a dashboard, products (search, filter, page,
+create, edit, delete, movement history), categories (list, create, edit,
+delete) and movements (filter by product, type and dates, register an entry or
+an exit). A `reader` sees everything read-only; the write buttons only appear
+for `admin`.
+
+Sign-in goes through Keycloak's own login page (authorization code with PKCE,
+client `inventory-web`), so the app never sees a password. See ADR-014 for the
+design decisions.
+
+### Build the executable
+
+The published app is a single `Inventory.Web.exe` that runs without the .NET SDK
+or runtime installed:
+
+```bash
+cd Inventory
+dotnet publish Inventory.Web -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+```
+
+The output is in `Inventory/Inventory.Web/bin/Release/net10.0/win-x64/publish/`.
+Copy the whole folder: next to the `.exe` it holds `appsettings.json` and
+`wwwroot` (styles and scripts).
+
+### Run it
+
+1. Start the API and Keycloak: `docker compose up -d --build`.
+2. Double-click `Inventory.Web.exe`. It listens on `http://localhost:5090` and
+   opens that address in the default browser.
+3. Sign in as `admin` or `reader`, with the passwords from your `.env`.
+
+The addresses live in `appsettings.json` next to the `.exe`:
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `Urls` | `http://localhost:5090` | Where the UI listens. Keycloak only accepts this redirect URI. |
+| `InventoryApi:BaseUrl` | `http://localhost:5080/` | The API, as published by docker compose |
+| `Keycloak:Authority` | `http://localhost:8080/realms/inventory` | The realm that signs users in |
+| `OpenBrowserOnStart` | `true` | Open the browser when the `.exe` starts |
+
+From source, `dotnet run --project Inventory/Inventory.Web` starts it in
+Development mode on the same address.
+
 ## Tests
 
 ```bash
@@ -162,6 +210,14 @@ fail naming it.
 docker compose up -d --wait sqlserver sqlserver-init   # then run the tests above
 ```
 
+The web UI has its own suite, which needs nothing external either: the HTTP
+client, the error pages, the token refresh and the bearer header run against a
+stubbed `HttpMessageHandler`.
+
+```bash
+dotnet test Inventory.Web.Tests/Inventory.Web.Tests.csproj
+```
+
 Coverage:
 
 ```bash
@@ -176,15 +232,18 @@ Inventory/
   Inventory.Application/      Commands, queries, handlers, validators, DTOs, persistence interfaces.
   Inventory.Infrastructure/   EF Core context and configurations, Dapper repositories, unit of work, DI.
   Inventory.Api/              Controllers, auth, Swagger, error envelope.
+  Inventory.Web/              Razor Pages UI: typed API client, Keycloak sign-in, pages.
   Inventory.UnitTests/        Domain, handler, validator and read-model tests.
   Inventory.IntegrationTests/ Transaction and mapping tests against a real database.
+  Inventory.Web.Tests/        API client, error handling and token tests for the UI.
 db/init.sql                   Schema and seed, idempotent.
 docker/keycloak/              Realm export imported on startup.
 docs/                         SPEC.md, ADR.md, AI-LOG.md, decisions.md
 ```
 
 Dependency direction: `Api → Application → Domain`, `Infrastructure → Application`.
-Domain references nothing.
+Domain references nothing. `Web` references none of them: it only knows the API
+through HTTP.
 
 ## API surface
 

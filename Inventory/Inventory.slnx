@@ -4,9 +4,11 @@
     <Project Path="Inventory.Application/Inventory.Application.csproj" />
     <Project Path="Inventory.Domain/Inventory.Domain.csproj" />
     <Project Path="Inventory.Infrastructure/Inventory.Infrastructure.csproj" />
+    <Project Path="Inventory.Web/Inventory.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="Inventory.IntegrationTests/Inventory.IntegrationTests.csproj" />
     <Project Path="Inventory.UnitTests/Inventory.UnitTests.csproj" />
+    <Project Path="Inventory.Web.Tests/Inventory.Web.Tests.csproj" />
   </Folder>
 </Solution>

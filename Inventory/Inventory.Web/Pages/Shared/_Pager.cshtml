@@ -1,0 +1,19 @@
+@model PagerModel
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="Pagination" class="d-flex justify-content-between align-items-center">
+        <span class="text-body-secondary small">Page @Model.PageNumber of @Model.TotalPages · @Model.TotalCount results</span>
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+                <a class="page-link" asp-all-route-data="Model.RouteFor(Model.PageNumber - 1)">Previous</a>
+            </li>
+            <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" asp-all-route-data="Model.RouteFor(Model.PageNumber + 1)">Next</a>
+            </li>
+        </ul>
+    </nav>
+}
+else if (Model.TotalCount > 0)
+{
+    <p class="text-body-secondary small mb-0">@Model.TotalCount results</p>
+}

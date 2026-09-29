@@ -1,0 +1,54 @@
+@page
+@model Inventory.Web.Pages.Movements.CreateModel
+@{
+    ViewData["Title"] = "Register movement";
+    ViewData["Section"] = "Movements";
+}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-page="Index">Movements</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Register</li>
+    </ol>
+</nav>
+<div class="page-header"><h1>Register movement</h1></div>
+<div class="card" style="max-width: 40rem">
+    <div class="card-body">
+        <form method="post" data-loading="Registering…" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <div class="mb-3">
+                <label asp-for="Form.ProductId" class="form-label"></label>
+                <select asp-for="Form.ProductId" asp-items="Model.ProductOptions" class="form-select">
+                    <option value="">Choose a product…</option>
+                </select>
+                <span asp-validation-for="Form.ProductId"></span>
+            </div>
+            <fieldset class="mb-3">
+                <legend class="form-label fs-6">Type</legend>
+                <div class="btn-group" role="group" aria-label="Movement type">
+                    <input type="radio" class="btn-check" asp-for="Form.Type" value="In" id="type-in" />
+                    <label class="btn btn-outline-success" for="type-in">In · units arrive</label>
+                    <input type="radio" class="btn-check" asp-for="Form.Type" value="Out" id="type-out" />
+                    <label class="btn btn-outline-warning" for="type-out">Out · units leave</label>
+                </div>
+                <span asp-validation-for="Form.Type"></span>
+            </fieldset>
+            <div class="mb-3" style="max-width: 12rem">
+                <label asp-for="Form.Quantity" class="form-label"></label>
+                <input asp-for="Form.Quantity" class="form-control" type="number" min="1" step="1" />
+                <span asp-validation-for="Form.Quantity"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Form.Reason" class="form-label"></label>
+                <input asp-for="Form.Reason" class="form-control" placeholder="e.g. supplier delivery, sale #1043" />
+                <span asp-validation-for="Form.Reason"></span>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Register</button>
+                <a class="btn btn-link" asp-page="Index">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

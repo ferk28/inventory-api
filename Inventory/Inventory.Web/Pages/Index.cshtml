@@ -1,0 +1,48 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["Section"] = "Dashboard";
+}
+<div class="page-header">
+    <h1>Dashboard</h1>
+    @if (User.CanWrite())
+    {
+        <div class="d-flex gap-2">
+            <a class="btn btn-primary" asp-page="/Movements/Create">Register movement</a>
+            <a class="btn btn-outline-primary" asp-page="/Products/Create">New product</a>
+        </div>
+    }
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <a class="card h-100 text-decoration-none" asp-page="/Products/Index">
+            <div class="card-body">
+                <div class="text-body-secondary small">Active products</div>
+                <div class="stat-value text-body">@Model.ActiveProductCount</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-4">
+        <a class="card h-100 text-decoration-none" asp-page="/Categories/Index">
+            <div class="card-body">
+                <div class="text-body-secondary small">Active categories</div>
+                <div class="stat-value text-body">@Model.ActiveCategoryCount</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-4">
+        <a class="card h-100 text-decoration-none" asp-page="/Movements/Index">
+            <div class="card-body">
+                <div class="text-body-secondary small">Movements registered</div>
+                <div class="stat-value text-body">@Model.MovementCount</div>
+            </div>
+        </a>
+    </div>
+</div>
+<div class="card">
+    <div class="card-body">
+        <h2 class="h5 mb-3">Latest movements</h2>
+        <partial name="_MovementTable" model="Model.RecentMovements" />
+    </div>
+</div>

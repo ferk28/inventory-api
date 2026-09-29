@@ -311,3 +311,38 @@ Registration rules that make or break it:
 - The mapper is a pure function, so every status code is covered by `ProblemDetailsMapperTests` without starting the API.
 - The cost is that failures are not visible in method signatures: nothing in `Task<ProductDto>` says it can throw `NotFoundException`, and the compiler cannot force a caller to handle it. Expected failures also pay the cost of building a stack trace, which is acceptable at this request volume.
 - A new exception type that is not added to the mapper silently becomes a `500`. The mapper tests are the guard against that.
+
+---
+
+## ADR-014 — Web UI: Razor Pages over HTTP, Keycloak sign-in with PKCE, shipped as one `.exe`
+
+- **Date:** 2026-09-29
+- **Proposed by:** AI (Prompt 19, phase 3 requirement); the two main choices were mine
+- **Status:** Accepted
+
+**Context:** Phase 3 asks for a .NET web interface (Razor Pages or MVC) that consumes this API, covers its main operations, handles loading and error states, validates on the client, and is delivered as a self-contained `win-x64` executable that opens without the SDK. The API requires a Keycloak token on every call.
+
+**Options:**
+1. MVC with controllers and views, or Razor Pages with one `PageModel` per screen.
+2. Reference the Application DTOs from the UI, or give the UI its own copy of the wire contract.
+3. Sign in with a login form that sends the password to Keycloak (password grant), or redirect to Keycloak's login page (authorization code with PKCE).
+
+**Decision:**
+- Razor Pages. Every screen is a form or a list with its own handler, so controllers would only add routing ceremony.
+- `Inventory.Web` references no other project. A typed `InventoryApiClient` over `IHttpClientFactory` has one method per endpoint and its own records, and any non-success answer becomes an `ApiException` carrying the ProblemDetails `detail` and field errors.
+- Authorization code with PKCE against a new public client, `inventory-web`. The password grant is deprecated by OAuth 2.1 and would put credentials in the app. The client is public because a secret inside a distributed `.exe` is not a secret.
+
+**How the pieces fit:**
+- A cookie holds the session and the tokens. `TokenRefreshingCookieEvents` trades the refresh token for a new access token a minute before the five-minute Keycloak token expires, and signs the user out if Keycloak refuses.
+- `AccessTokenHandler` adds the bearer token to every API call, so no page touches a token.
+- Pages catch only the errors a user can fix in the form they sent (`400`, `409`, `422`); field errors land under their field, conflicts and business rules in the summary. `ApiExceptionPageFilter` turns the rest into pages: `401` back to login and then to the same page, `403` to *Access denied*, `404` to *Not found*, and an unreachable API to *API unavailable* with a retry link.
+- Client validation uses DataAnnotations that mirror the API's validators, with jQuery unobtrusive validation. A small script disables a submitted form's button and shows a spinner, so a slow call cannot be sent twice.
+- Roles come from a `roles` claim that the `inventory-web` client adds to the ID token. Write pages require `inventory.write`, and the write buttons are hidden for `reader`.
+- The `.exe` is a single-file, self-contained publish. `ContentRootPath` is the executable's folder, so `wwwroot` and `appsettings.json` are found wherever it is started from, and it opens the browser on start.
+
+**Consequences:**
+- The UI tests the API as a real client does. A contract change breaks the UI's JSON reading, which is the point of keeping a separate copy.
+- The product lists inside the movement filter and the register form load at most 100 products, the API's page limit. That is enough for this data set; a larger catalogue would need a search box instead of a dropdown.
+- The UI must run on `http://localhost:5090`, the only redirect URI the realm accepts. Moving it means changing the realm too.
+- Keycloak's login page, not this app, decides what a failed sign-in looks like.
+- The UI is in English, like the API and its error messages, so both read as one product.

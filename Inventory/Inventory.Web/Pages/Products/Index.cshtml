@@ -1,0 +1,122 @@
+@page
+@model Inventory.Web.Pages.Products.IndexModel
+@{
+    ViewData["Title"] = "Products";
+    ViewData["Section"] = "Products";
+}
+<div class="page-header">
+    <h1>Products</h1>
+    @if (User.CanWrite())
+    {
+        <a class="btn btn-primary" asp-page="Create">New product</a>
+    }
+</div>
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end" data-loading="Searching…">
+            <div class="col-md-5">
+                <label asp-for="Search" class="form-label small">Search by name or SKU</label>
+                <input asp-for="Search" class="form-control" placeholder="e.g. mouse or ELEC-0001" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="CategoryId" class="form-label small">Category</label>
+                <select asp-for="CategoryId" asp-items="Model.CategoryOptions" class="form-select">
+                    <option value="">All categories</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check mb-2">
+                    <input asp-for="IncludeInactive" class="form-check-input" />
+                    <label asp-for="IncludeInactive" class="form-check-label small">Show inactive</label>
+                </div>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-outline-primary flex-grow-1">Search</button>
+                @if (Model.IsFiltered)
+                {
+                    <a class="btn btn-link" asp-page="Index">Clear</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="card-body">
+        @if (Model.Products.Items.Count == 0)
+        {
+            <div class="empty-state">
+                @if (Model.IsFiltered)
+                {
+                    <p class="mb-2">No product matches these filters.</p>
+                    <a asp-page="Index">Clear the filters</a>
+                }
+                else
+                {
+                    <p class="mb-2">There are no products yet.</p>
+                    @if (User.CanWrite())
+                    {
+                        <a asp-page="Create">Create the first one</a>
+                    }
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Stock</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (ProductModel product in Model.Products.Items)
+                        {
+                            <tr class="@(product.IsActive ? "" : "inactive")">
+                                <td class="text-nowrap"><code>@product.Sku</code></td>
+                                <td><a asp-page="Details" asp-route-id="@product.Id">@product.Name</a></td>
+                                <td>@product.CategoryName</td>
+                                <td class="text-end">@DisplayFormat.Money(product.Price)</td>
+                                <td class="text-end">
+                                    @product.Stock
+                                    @if (product.IsActive && product.Stock == 0)
+                                    {
+                                        <span class="badge text-bg-danger ms-1">Out</span>
+                                    }
+                                    else if (product.IsActive && product.Stock <= DisplayFormat.LowStockThreshold)
+                                    {
+                                        <span class="badge text-bg-warning ms-1">Low</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (product.IsActive)
+                                    {
+                                        <span class="badge text-bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-secondary">Inactive</span>
+                                    }
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <a class="btn btn-sm btn-outline-secondary" asp-page="Details" asp-route-id="@product.Id">View</a>
+                                    @if (User.CanWrite() && product.IsActive)
+                                    {
+                                        <a class="btn btn-sm btn-outline-primary" asp-page="Edit" asp-route-id="@product.Id">Edit</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <partial name="_Pager" model="Model.Pager" />
+        }
+    </div>
+</div>

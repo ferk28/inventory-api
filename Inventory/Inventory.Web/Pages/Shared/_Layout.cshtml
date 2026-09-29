@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · Inventory</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    @{
+        string? section = ViewData["Section"] as string;
+        bool signedIn = User.Identity?.IsAuthenticated == true;
+    }
+    <header>
+        <nav class="navbar navbar-expand-md navbar-dark bg-primary-subtle-dark mb-4">
+            <div class="container">
+                <a class="navbar-brand fw-semibold" asp-page="/Index">Inventory</a>
+                @if (signedIn)
+                {
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-nav"
+                            aria-controls="main-nav" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="main-nav">
+                        <ul class="navbar-nav me-auto">
+                            <li class="nav-item"><a class="nav-link @(section == "Dashboard" ? "active" : "")" asp-page="/Index">Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link @(section == "Products" ? "active" : "")" asp-page="/Products/Index">Products</a></li>
+                            <li class="nav-item"><a class="nav-link @(section == "Categories" ? "active" : "")" asp-page="/Categories/Index">Categories</a></li>
+                            <li class="nav-item"><a class="nav-link @(section == "Movements" ? "active" : "")" asp-page="/Movements/Index">Movements</a></li>
+                        </ul>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="navbar-text small">
+                                @User.Identity!.Name
+                                <span class="badge @(User.CanWrite() ? "text-bg-light" : "text-bg-secondary") ms-1">
+                                    @(User.CanWrite() ? "read & write" : "read only")
+                                </span>
+                            </span>
+                            <form method="post" asp-page="/Account/Logout" class="m-0">
+                                <button type="submit" class="btn btn-sm btn-outline-light">Sign out</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-5">
+            <partial name="_StatusMessage" />
+            @RenderBody()
+        </main>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

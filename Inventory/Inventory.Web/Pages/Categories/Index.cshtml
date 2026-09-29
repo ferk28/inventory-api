@@ -1,0 +1,81 @@
+@page
+@model Inventory.Web.Pages.Categories.IndexModel
+@{
+    ViewData["Title"] = "Categories";
+    ViewData["Section"] = "Categories";
+}
+<div class="page-header">
+    <h1>Categories</h1>
+    <div class="d-flex gap-2 align-items-center">
+        <form method="get" class="m-0">
+            <div class="form-check form-switch mb-0">
+                <input asp-for="IncludeInactive" class="form-check-input" onchange="this.form.submit()" />
+                <label asp-for="IncludeInactive" class="form-check-label small">Show inactive</label>
+            </div>
+            <noscript><button type="submit" class="btn btn-sm btn-outline-secondary">Apply</button></noscript>
+        </form>
+        @if (User.CanWrite())
+        {
+            <a class="btn btn-primary" asp-page="Create">New category</a>
+        }
+    </div>
+</div>
+<div class="card">
+    <div class="card-body">
+        @if (Model.Categories.Count == 0)
+        {
+            <div class="empty-state">
+                <p class="mb-2">There are no categories yet.</p>
+                @if (User.CanWrite())
+                {
+                    <a asp-page="Create">Create the first one</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (CategoryModel category in Model.Categories)
+                        {
+                            <tr class="@(category.IsActive ? "" : "inactive")">
+                                <td class="fw-semibold">
+                                    <a asp-page="/Products/Index" asp-route-categoryId="@category.Id" asp-route-includeInactive="@(category.IsActive ? null : "true")">@category.Name</a>
+                                </td>
+                                <td class="text-body-secondary">@category.Description</td>
+                                <td>
+                                    @if (category.IsActive)
+                                    {
+                                        <span class="badge text-bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-secondary">Inactive</span>
+                                    }
+                                </td>
+                                <td class="text-nowrap">@DisplayFormat.LocalTime(category.CreatedAt)</td>
+                                <td class="text-end text-nowrap">
+                                    @if (User.CanWrite() && category.IsActive)
+                                    {
+                                        <a class="btn btn-sm btn-outline-primary" asp-page="Edit" asp-route-id="@category.Id">Edit</a>
+                                        <a class="btn btn-sm btn-outline-danger" asp-page="Delete" asp-route-id="@category.Id">Delete</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

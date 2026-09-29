@@ -1,0 +1,12 @@
+@page
+@{
+    ViewData["Title"] = "Not allowed";
+}
+<div class="card mx-auto" style="max-width: 36rem">
+    <div class="card-body p-4">
+        <h1 class="h4">You can look, but not change</h1>
+        <p>Your user <strong>@User.Identity?.Name</strong> has read-only access. Creating, editing, deleting and
+            registering movements need the <code>inventory.write</code> role, which the <code>admin</code> demo user has.</p>
+        <a class="btn btn-primary" asp-page="/Index">Back to the dashboard</a>
+    </div>
+</div>

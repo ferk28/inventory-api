@@ -1,0 +1,30 @@
+@page "{id:int}"
+@model Inventory.Web.Pages.Products.EditModel
+@{
+    ViewData["Title"] = $"Edit {Model.Form.Sku}";
+    ViewData["Section"] = "Products";
+}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-page="Index">Products</a></li>
+        <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.ProductId">@Model.Form.Sku</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Edit</li>
+    </ol>
+</nav>
+<div class="page-header"><h1>Edit product</h1></div>
+<div class="card" style="max-width: 48rem">
+    <div class="card-body">
+        <form method="post" data-loading="Saving…" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <partial name="_ProductFields" model="new ProductFieldsModel(Model.Form, Model.CategoryOptions, false)" />
+            <p class="text-body-secondary small mt-3 mb-0">Stock is not edited here: register a movement to change it.</p>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Save changes</button>
+                <a class="btn btn-link" asp-page="Details" asp-route-id="@Model.ProductId">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

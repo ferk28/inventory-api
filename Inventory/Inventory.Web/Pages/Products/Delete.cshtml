@@ -1,0 +1,23 @@
+@page "{id:int}"
+@model Inventory.Web.Pages.Products.DeleteModel
+@{
+    ViewData["Title"] = $"Delete {Model.Product.Sku}";
+    ViewData["Section"] = "Products";
+}
+<div class="card mx-auto" style="max-width: 36rem">
+    <div class="card-body p-4">
+        <h1 class="h4">Delete @Model.Product.Name?</h1>
+        @if (Model.ErrorMessage is not null)
+        {
+            <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+        }
+        <p>
+            <code>@Model.Product.Sku</code> will disappear from the product list and can no longer receive
+            movements. Its @Model.Product.Stock units on hand and its movement history stay in the records.
+        </p>
+        <form method="post" data-loading="Deleting…" class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">Delete product</button>
+            <a class="btn btn-link" asp-page="Details" asp-route-id="@Model.Product.Id">Cancel</a>
+        </form>
+    </div>
+</div>

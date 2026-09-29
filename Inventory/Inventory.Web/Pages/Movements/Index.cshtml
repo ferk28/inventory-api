@@ -1,0 +1,70 @@
+@page
+@model Inventory.Web.Pages.Movements.IndexModel
+@{
+    ViewData["Title"] = "Movements";
+    ViewData["Section"] = "Movements";
+}
+<div class="page-header">
+    <h1>Movements</h1>
+    @if (User.CanWrite())
+    {
+        <a class="btn btn-primary" asp-page="Create">Register movement</a>
+    }
+</div>
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end" data-loading="Filtering…">
+            <div class="col-md-4">
+                <label asp-for="ProductId" class="form-label small">Product</label>
+                <select asp-for="ProductId" asp-items="Model.ProductOptions" class="form-select">
+                    <option value="">All products</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label asp-for="Type" class="form-label small">Type</label>
+                <select asp-for="Type" class="form-select">
+                    <option value="">Both</option>
+                    <option value="In">In</option>
+                    <option value="Out">Out</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label asp-for="From" class="form-label small">From</label>
+                <input asp-for="From" type="date" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="To" class="form-label small">To</label>
+                <input asp-for="To" type="date" class="form-control" />
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-outline-primary flex-grow-1">Filter</button>
+                @if (Model.IsFiltered)
+                {
+                    <a class="btn btn-link" asp-page="Index">Clear</a>
+                }
+            </div>
+        </form>
+        @if (Model.FilterError is not null)
+        {
+            <div class="alert alert-warning mt-3 mb-0" role="alert">@Model.FilterError</div>
+        }
+    </div>
+</div>
+<div class="card">
+    <div class="card-body">
+        @if (Model.Movements.Items.Count == 0 && Model.IsFiltered && Model.FilterError is null)
+        {
+            <div class="empty-state">
+                <p class="mb-2">No movement matches these filters.</p>
+                <a asp-page="Index">Clear the filters</a>
+            </div>
+        }
+        else
+        {
+            <partial name="_MovementTable" model="Model.Movements.Items" />
+            <div class="mt-3">
+                <partial name="_Pager" model="Model.Pager" />
+            </div>
+        }
+    </div>
+</div>

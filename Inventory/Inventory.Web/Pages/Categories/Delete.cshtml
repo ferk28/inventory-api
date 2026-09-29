@@ -1,0 +1,26 @@
+@page "{id:int}"
+@model Inventory.Web.Pages.Categories.DeleteModel
+@{
+    ViewData["Title"] = $"Delete {Model.Category.Name}";
+    ViewData["Section"] = "Categories";
+}
+<div class="card mx-auto" style="max-width: 36rem">
+    <div class="card-body p-4">
+        <h1 class="h4">Delete category @Model.Category.Name?</h1>
+        @if (Model.ErrorMessage is not null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @Model.ErrorMessage
+                <a class="alert-link d-block mt-1" asp-page="/Products/Index" asp-route-categoryId="@Model.Category.Id">See its products</a>
+            </div>
+        }
+        <p>
+            The category is deactivated and stops receiving new products. It can only be deleted when none of its
+            products is active. Its name stays reserved, so it cannot be reused for a new category.
+        </p>
+        <form method="post" data-loading="Deleting…" class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">Delete category</button>
+            <a class="btn btn-link" asp-page="Index">Cancel</a>
+        </form>
+    </div>
+</div>

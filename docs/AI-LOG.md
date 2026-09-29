@@ -288,3 +288,19 @@ I ran the database scripts locally and checked that the tables and indexes were 
 - It told me that answers 2 and 3 of `decisions.md` had six sentences each; they have seven and eight. It corrected the count when it reviewed the final file.
 
 **Known trade-off.** A `POST` now returns `createdAt` with fractions of a second, taken from the entity, while a later `GET` returns it rounded to the second, because the column is `DATETIME2(0)`.
+
+
+### Prompt 19 — Web UI for phase 3, in Claude Code (2026-09-29)
+> "sí, empieza con la interfaz web, que seria lo recomendado?"
+
+**Context:** phase 3 adds a requirement: a .NET web interface (Razor Pages or MVC) that consumes this API, delivered as a self-contained Windows `.exe`. The review looks at UI judgement (clarity, usability, loading and error states) and at how the API is consumed (`HttpClient`, `async/await`, data mapping, client validation).
+
+**AI output:**
+- A recommendation, with the alternatives, for the project type, how the UI reaches the API, how users sign in, the screens, and how the `.exe` is built. I chose Razor Pages and Keycloak sign-in with authorization code and PKCE, both the recommended options (ADR-014).
+- The `Inventory.Web` project: a typed `InventoryApiClient`, cookie sign-in with token refresh, a bearer-token handler, a page filter for API errors, and the dashboard, product, category and movement pages. Plus a new `inventory-web` client in the realm, and the `Inventory.Web.Tests` project with 24 tests.
+- ADR-014 and the *Web UI* section of the README, with the publish command.
+
+**Verified by running it, not only by tests.** With the compose stack up, the AI drove the real sign-in through Keycloak with `curl` for both users and exercised every screen. `admin` created a category and a product, registered an entry and an exit, edited the price and deleted both records. The API's answers reached the forms: a duplicate SKU (`409`), a negative price (`400`, under its field), an exit larger than the stock (`422`), and deleting a category with active products (`409`). `reader` saw no write button and got *Access denied* on every write page. Stopping the API container led to *API unavailable*, whose retry link returned to the same search. Signing out also ended the Keycloak session. With the published `.exe`, a session left idle past the five-minute token lifetime kept working: the next request refreshed the token and renewed the cookie, with no new sign-in.
+
+**Mistakes the AI made.**
+- The rule "every page requires a signed-in user" also covered CSS and scripts, so the error pages shown to signed-out users would have had no styles. Running the published `.exe` caught it; static files are now public.

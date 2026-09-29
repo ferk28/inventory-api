@@ -1,0 +1,36 @@
+@page
+@model Inventory.Web.Pages.Products.CreateModel
+@{
+    ViewData["Title"] = "New product";
+    ViewData["Section"] = "Products";
+}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-page="Index">Products</a></li>
+        <li class="breadcrumb-item active" aria-current="page">New</li>
+    </ol>
+</nav>
+<div class="page-header"><h1>New product</h1></div>
+<div class="card" style="max-width: 48rem">
+    <div class="card-body">
+        @if (Model.CategoryOptions.Count == 0)
+        {
+            <div class="alert alert-warning">
+                A product needs an active category, and there are none.
+                <a asp-page="/Categories/Create">Create a category first.</a>
+            </div>
+        }
+        <form method="post" data-loading="Saving…" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <partial name="_ProductFields" model="new ProductFieldsModel(Model.Form, Model.CategoryOptions, true)" />
+            <p class="text-body-secondary small mt-3 mb-0">New products start with stock 0. Stock only changes through movements.</p>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Create product</button>
+                <a class="btn btn-link" asp-page="Index">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

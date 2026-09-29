@@ -1,0 +1,28 @@
+@page
+@model Inventory.Web.Pages.Categories.CreateModel
+@{
+    ViewData["Title"] = "New category";
+    ViewData["Section"] = "Categories";
+}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-page="Index">Categories</a></li>
+        <li class="breadcrumb-item active" aria-current="page">New</li>
+    </ol>
+</nav>
+<div class="page-header"><h1>New category</h1></div>
+<div class="card" style="max-width: 36rem">
+    <div class="card-body">
+        <form method="post" data-loading="Saving…" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <partial name="_CategoryFields" for="Form" />
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Create category</button>
+                <a class="btn btn-link" asp-page="Index">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

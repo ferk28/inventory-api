@@ -1,0 +1,13 @@
+@page
+@model ApiUnavailableModel
+@{
+    ViewData["Title"] = "API unavailable";
+}
+<div class="card mx-auto" style="max-width: 36rem">
+    <div class="card-body p-4">
+        <h1 class="h4">The inventory API is not answering</h1>
+        <p>This screen needs data from the API at <code>@Model.ApiBaseUrl</code>, and it did not respond in time.
+            Start it with <code>docker compose up -d</code> and try again.</p>
+        <a class="btn btn-primary" href="@Model.RetryUrl">Try again</a>
+    </div>
+</div>
